@@ -37,7 +37,7 @@ See `docs/technical-flow.md` for the full architecture.
 | 3 | Home page, real iTunes tracks | ✅ Done — verified with mocked network transport |
 | 4 | Taste Anchors chip-tap flow | ✅ Done — verified in browser |
 | 5 | Vibe Pulse tab (mood cloud → Groq → iTunes → cards) | ✅ Done — verified with mocked network transport |
-| 6 | Thumbs up/down + change-my-vibe button | ⬜ Not started |
+| 6 | Thumbs up/down + change-my-vibe button | ✅ Done — verified with mocked network transport |
 | 7 | Debug Metrics panel | ⬜ Not started |
 | 8 | Visual polish | ⬜ Not started |
 | 9 | Deploy to Vercel | ⬜ Not started |
@@ -182,4 +182,31 @@ inline error message (no crash, no unhandled promise rejection).
 **Result:** ✅ Working as expected, including both integration points (shared player, key
 rotation). Ready for Phase 6 (thumbs + manual change-my-vibe). Live Groq/iTunes calls still need
 confirmation on Vercel or the user's machine.
+
+### Phase 6 — Thumbs up/down + manual "change my vibe" (2026-07-05)
+
+**What was built:** `ChangeVibeButton.jsx` — a persistent shuffle-glyph icon next to the "Vibe
+Pulse" header, always visible regardless of the daily cap, opening the same `MoodCloud` as a
+one-off manual flow (`manualPromptOpen` state in `VibePulse.jsx`) that reuses the exact same
+`runMoodQuery` → Groq → iTunes pipeline from Phase 5 without touching `dailyVibePrompt` at all.
+`SuggestionGrid.jsx` updated to read/write `localStorage.vibePulseFeedback`
+(`{"<artistName>::<trackName>": "up"|"down"}`) via `TrackCard`'s existing `thumbs` prop — this key
+is deliberately separate from `tasteAnchors` (comment in the code notes this mirrors the product
+requirement that Vibe Pulse feedback must never silently alter the user's primary
+recommendations).
+
+**How it was tested:** Ran `npm run dev` with the same Groq/iTunes route mocks as Phase 5,
+pre-seeding `dailyVibePrompt` to simulate "already picked today." Verified: (1) the change-vibe
+button is visible and the "already picked" empty state shows correctly even with the daily cap
+exhausted; (2) clicking it opens the mood cloud, picking a mood fires exactly 1 Groq call and
+renders 6 suggestions; (3) `dailyVibePrompt` is provably untouched by the manual flow (compared
+before/after, byte-for-byte equal); (4) thumbs up on suggestion 1 and thumbs down on suggestion 2
+both wrote correctly to `vibePulseFeedback` (`{"Artist::...Song 1":"up","Artist::...Song 2":"down"}`);
+(5) `tasteAnchors` was confirmed unchanged after thumbs feedback, proving the isolation; (6) clicking
+a thumbs icon did not change `audio.src`, confirming `stopPropagation` correctly prevents thumbs
+clicks from also triggering playback. Visually confirmed via screenshot: shuffle icon renders next
+to the header, thumbs icons render under each card and highlight gold when tapped.
+
+**Result:** ✅ Working as expected, including the "manual bypasses daily cap" and "feedback stays
+isolated from taste profile" integration points. Ready for Phase 7 (Debug Metrics panel).
 

@@ -5,6 +5,7 @@ import { getMoodRecommendations } from '../api/groq'
 import { searchByArtistTrack } from '../api/itunes'
 import MoodCloud from '../components/vibePulse/MoodCloud'
 import SuggestionGrid from '../components/vibePulse/SuggestionGrid'
+import ChangeVibeButton from '../components/vibePulse/ChangeVibeButton'
 
 function todayString() {
   return new Date().toISOString().slice(0, 10)
@@ -16,6 +17,7 @@ export default function VibePulse() {
     lastShownDate: null,
     lastResponse: null,
   })
+  const [manualPromptOpen, setManualPromptOpen] = useState(false)
   const [selectedMood, setSelectedMood] = useState(null)
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
@@ -49,18 +51,30 @@ export default function VibePulse() {
     setDailyPrompt({ lastShownDate: today, lastResponse: 'dismissed' })
   }
 
+  const handleManualMoodPick = (mood) => {
+    setManualPromptOpen(false)
+    runMoodQuery(mood)
+  }
+
   return (
     <div className="pt-4">
-      <h2 className="text-white text-2xl font-bold mb-6">Vibe Pulse</h2>
+      <div className="flex items-center gap-3 mb-6">
+        <h2 className="text-white text-2xl font-bold">Vibe Pulse</h2>
+        <ChangeVibeButton onClick={() => setManualPromptOpen(true)} />
+      </div>
 
-      {showDailyPrompt && !selectedMood && (
+      {manualPromptOpen && (
+        <MoodCloud onSelectMood={handleManualMoodPick} onDismiss={() => setManualPromptOpen(false)} />
+      )}
+
+      {!manualPromptOpen && showDailyPrompt && !selectedMood && (
         <MoodCloud onSelectMood={handleDailyMoodPick} onDismiss={handleDailyDismiss} />
       )}
 
-      {!showDailyPrompt && !selectedMood && (
+      {!manualPromptOpen && !showDailyPrompt && !selectedMood && (
         <p className="text-spotify-gray text-sm" data-testid="vibe-pulse-empty">
-          You've already picked today's vibe. Come back tomorrow — manual re-rolling arrives with
-          the "change my vibe" button in the next phase.
+          You've already picked today's vibe. Come back tomorrow, or tap the shuffle icon above to
+          change your vibe right now.
         </p>
       )}
 

@@ -77,13 +77,15 @@ above.
 
 **API calls per mood tap:** 1 Groq (LLM) + ≤6 iTunes (non-LLM).
 
-## Phase 6 — Thumbs up/down + manual "change my vibe" button
-**Files (planned):** extends `SuggestionGrid`/`TrackCard`'s `thumbs` prop, `ChangeVibeButton.jsx`.
-**Architecture:** Thumbs write to `localStorage.vibePulseFeedback` (`{"<artist>::<track>": "up"|"down"}`)
+## Phase 6 — Thumbs up/down + manual "change my vibe" button ✅
+**Files:** `src/components/vibePulse/ChangeVibeButton.jsx`, updated
+`SuggestionGrid.jsx`/`TrackCard`'s `thumbs` prop, updated `VibePulse.jsx`.
+**Architecture:** Thumbs write to `localStorage.vibePulseFeedback` (`{"<artistName>::<trackName>": "up"|"down"}`)
 — a key isolated from `tasteAnchors`, by design: Vibe Pulse feedback must never silently alter the
 user's primary taste profile. The "change my vibe" icon is always visible in the Vibe Pulse tab,
 independent of the daily cap, and re-opens the mood cloud on demand (same Groq/iTunes pipeline as
-Phase 5). No new API calls beyond what Phase 5 already makes.
+Phase 5, via a separate `manualPromptOpen` state that never touches `dailyVibePrompt`). No new API
+calls beyond what Phase 5 already makes.
 
 ## Phase 7 — Debug Metrics panel
 **Files (planned):** `src/lib/metrics.js`, `src/components/debug/DebugMetricsPanel.jsx`.
