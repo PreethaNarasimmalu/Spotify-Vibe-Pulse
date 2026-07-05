@@ -105,7 +105,7 @@ Response.results[i] = {
 
 ```
 POST https://api.groq.com/openai/v1/chat/completions
-Headers: { Authorization: `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`, Content-Type: application/json }
+Headers: { Authorization: `Bearer ${apiKey}`, Content-Type: application/json }
 Body: {
   model: "llama-3.3-70b-versatile",
   messages: [
@@ -116,8 +116,21 @@ Body: {
 }
 ```
 
-Response parsed as `JSON.parse(choices[0].message.content)` → `{ tracks: [{artist, track}, ...] }`,
-wrapped in try/catch with a fallback (empty array + inline error state) on parse failure.
+Exactly 1 LLM call per mood tap (daily prompt or manual "change my vibe" — same code path),
+returning all 6 track recommendations in one response. Response parsed as
+`JSON.parse(choices[0].message.content)` → `{ tracks: [{artist, track}, ...] }`, wrapped in
+try/catch with a fallback (empty array + inline error state) on parse failure.
+
+### Multi-key rotation
+
+`apiKey` above comes from a small in-module rotator, not a single hardcoded env var. Reads
+`VITE_GROQ_API_KEYS` (comma-separated, up to 5 keys — falls back to single `VITE_GROQ_API_KEY` if
+that's what's set) and keeps a module-level "current key index". Each call tries the current key;
+on a retryable failure (HTTP 401/403/429, or a network error) it advances to the next key and
+retries, up to once per configured key, then throws if all are exhausted. It does not round-robin
+on every call — it sticks with whichever key last succeeded, only rotating forward on failure.
+This is purely a resilience measure (e.g. one key hitting Groq's free-tier rate limit) and does
+not change the request/response shape above.
 
 ## localStorage schema
 
