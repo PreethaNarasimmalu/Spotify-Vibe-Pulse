@@ -24,6 +24,7 @@ See `docs/technical-flow.md` for the full architecture.
 | 2026-07-05 | User will add the Groq key via Vercel project environment variables (not a local `.env`), consistent with the earlier "mock in-sandbox, verify live later" decision — Phase 5 will be built and locally verified with a mocked Groq response, with the real live call confirmed after Vercel deploy. |
 | 2026-07-05 | Added `docs/phases.md`: a phase-wise architecture reference (what each of the 9 phases touches, its API calls, and its integration point with prior phases) — companion to the fuller `technical-flow.md`. |
 | 2026-07-05 | Per user request: Groq calls will support up to 5 API keys via `VITE_GROQ_API_KEYS` (comma-separated), with automatic failover to the next key on a retryable error (401/403/429/network failure). Sticky on the last-successful key rather than round-robining every call. Implemented in `api/groq.js` during Phase 5. |
+| 2026-07-05 | Phase 5 scope kept to the daily mood-cloud path only (per the spec's own build-order split) — the manual "change my vibe" button and thumbs feedback are deliberately deferred to Phase 6, even though the feature-description section groups them together. Reused the same `runMoodQuery`/Groq/iTunes pipeline so Phase 6 only adds a second entry point, not new logic. |
 
 ## Phase status
 
@@ -35,7 +36,7 @@ See `docs/technical-flow.md` for the full architecture.
 | 2 | Persistent bottom player (hardcoded preview) | ✅ Done — verified in browser |
 | 3 | Home page, real iTunes tracks | ✅ Done — verified with mocked network transport |
 | 4 | Taste Anchors chip-tap flow | ✅ Done — verified in browser |
-| 5 | Vibe Pulse tab (mood cloud → Groq → iTunes → cards) | ⬜ Not started |
+| 5 | Vibe Pulse tab (mood cloud → Groq → iTunes → cards) | ✅ Done — verified with mocked network transport |
 | 6 | Thumbs up/down + change-my-vibe button | ⬜ Not started |
 | 7 | Debug Metrics panel | ⬜ Not started |
 | 8 | Visual polish | ⬜ Not started |
@@ -144,4 +145,41 @@ grid, Next/Back) match the intended look.
 **Result:** ✅ Working as expected, including the banner ↔ player-plays integration point. Ready
 for Phase 5 (Vibe Pulse tab). This phase has no external network dependency, so no mocking
 caveat applies here.
+
+### Phase 5 — Vibe Pulse tab (2026-07-05)
+
+**What was built:** `api/groq.js` — `getMoodRecommendations(tasteAnchors, mood)` calling the real
+Groq chat-completions endpoint with the exact system prompt from the spec, `response_format:
+json_object`, plus multi-key rotation (`VITE_GROQ_API_KEYS`, sticky index, rotates forward on
+401/403/429/network failure, throws once all configured keys are exhausted). `MoodCloud.jsx` —
+8 mood words as clickable chips with per-chip pseudo-random rotation/size/vertical offset for a
+genuine scattered layout, always dismissible. `SuggestionGrid.jsx` — renders resolved suggestions
+as the same `TrackCard` used on Home. `VibePulse.jsx` — daily-cap gate reading/writing
+`localStorage.dailyVibePrompt` (`{lastShownDate, lastResponse}`), orchestrates
+mood tap → `getMoodRecommendations` → `Promise.all(searchByArtistTrack)` → render, with loading and
+inline-error states. Manual "change my vibe" and thumbs feedback intentionally deferred to Phase 6.
+
+**How it was tested:** Ran `npm run dev` with `VITE_GROQ_API_KEYS` set for the rotation test and a
+single fake key otherwise. Mocked both `api.groq.com` and `itunes.apple.com` via Playwright's
+`page.route()` (neither reachable from this sandbox) — the mocks stand in only for network
+transport; `api/groq.js`, `api/itunes.js`, and all the React orchestration ran unmodified. Verified:
+(1) mood cloud shows all 8 moods scattered (confirmed visually via screenshot — varying rotation/
+size/offset, not a grid); (2) tapping a mood fires **exactly 1 Groq call** carrying the real system
+prompt + `{tasteAnchors, mood}, then up to 6 parallel iTunes lookups, rendering 6 suggestion cards;
+(3) `dailyVibePrompt` written correctly as `{"lastShownDate":"<today>","lastResponse":"picked"}`;
+(4) clicking a suggestion card plays through the same shared `PlayerContext` used by Home —
+confirmed via real `<audio>` state (`paused:false`, `currentTime` advancing) and the player bar
+showing the correct track — this is the explicit Home/Vibe-Pulse-share-a-player integration point
+required by the task; (5) reloading the same day correctly suppresses the mood cloud and shows the
+"already picked" placeholder instead; (6) dismissing the cloud writes
+`{"lastResponse":"dismissed"}`, hides the cloud, and does **not** block the rest of the app;
+(7) **key rotation**: with `VITE_GROQ_API_KEYS="bad-key-1,bad-key-2,good-key-3"` and the mock
+returning 401 for the first key and 429 for the second, the app tried all three keys in order
+(confirmed via captured `Authorization` headers) and succeeded on the third, rendering 6
+suggestions with no user-visible error; (8) with all keys mocked to fail, the app shows a clean
+inline error message (no crash, no unhandled promise rejection).
+
+**Result:** ✅ Working as expected, including both integration points (shared player, key
+rotation). Ready for Phase 6 (thumbs + manual change-my-vibe). Live Groq/iTunes calls still need
+confirmation on Vercel or the user's machine.
 

@@ -43,10 +43,11 @@ banner once `playCount >= 3` and `tasteAnchors` is unset; Sidebar's "Update your
 same modal on demand any time.
 **API calls:** none.
 
-## Phase 5 — Vibe Pulse tab (mood cloud → Groq → iTunes → suggestion cards) — next up
-**Files (planned):** `src/api/groq.js`, `src/components/vibePulse/MoodCloud.jsx`,
-`src/components/vibePulse/ChangeVibeButton.jsx`, `src/components/vibePulse/SuggestionGrid.jsx`,
-`src/pages/VibePulse.jsx`.
+## Phase 5 — Vibe Pulse tab (mood cloud → Groq → iTunes → suggestion cards) ✅
+**Files:** `src/api/groq.js`, `src/components/vibePulse/MoodCloud.jsx`,
+`src/components/vibePulse/SuggestionGrid.jsx`, `src/pages/VibePulse.jsx`.
+Scope is the daily-cap mood-cloud path only — the manual "change my vibe" button
+(`ChangeVibeButton.jsx`) and thumbs feedback are Phase 6, per the spec's own build-order split.
 **Architecture:**
 1. Daily-cap check reads `localStorage.dailyVibePrompt.lastShownDate`; if not today, show the
    scattered mood-word cloud (always dismissible, never blocks the rest of the app).
