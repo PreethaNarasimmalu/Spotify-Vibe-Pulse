@@ -66,9 +66,19 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
     setDailyPrompt({ lastShownDate: today, lastResponse: 'dismissed' })
   }
 
+  // If today's daily prompt hasn't been resolved yet, consuming the manual
+  // (change-vibe / floating-button) picker also counts as resolving it — so
+  // dismissing or picking here doesn't immediately reveal a second, separate
+  // daily-prompt mood cloud stacked right behind it.
   const handleManualMoodPick = (mood) => {
     setManualPromptOpen(false)
+    if (showDailyPrompt) setDailyPrompt({ lastShownDate: today, lastResponse: 'picked' })
     runMoodQuery(mood)
+  }
+
+  const handleManualDismiss = () => {
+    setManualPromptOpen(false)
+    if (showDailyPrompt) setDailyPrompt({ lastShownDate: today, lastResponse: 'dismissed' })
   }
 
   const handleNoNewSongs = () => {
@@ -85,9 +95,7 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
         <NoNewSongsButton onClick={handleNoNewSongs} />
       </div>
 
-      {manualPromptOpen && (
-        <MoodCloud onSelectMood={handleManualMoodPick} onDismiss={() => setManualPromptOpen(false)} />
-      )}
+      {manualPromptOpen && <MoodCloud onSelectMood={handleManualMoodPick} onDismiss={handleManualDismiss} />}
 
       {!manualPromptOpen && showDailyPrompt && !selectedMood && (
         <MoodCloud onSelectMood={handleDailyMoodPick} onDismiss={handleDailyDismiss} />
@@ -95,8 +103,8 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
 
       {!manualPromptOpen && !showDailyPrompt && !selectedMood && (
         <p className="text-spotify-gray text-sm" data-testid="vibe-pulse-empty">
-          You've already picked today's vibe. Come back tomorrow, tap the shuffle icon to change
-          your vibe, or tap "No new songs" for familiar favorites right now.
+          Tap the green "Set your vibe" button anytime (bottom-left) to get fresh suggestions —
+          there's no daily limit on changing your mind.
         </p>
       )}
 

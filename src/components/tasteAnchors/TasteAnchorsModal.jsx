@@ -51,7 +51,7 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
         className="bg-spotify-card rounded-xl max-w-lg w-full p-6"
         onClick={(e) => e.stopPropagation()}

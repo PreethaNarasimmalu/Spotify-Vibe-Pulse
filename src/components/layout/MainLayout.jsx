@@ -2,8 +2,16 @@ import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import Footer from './Footer'
 import PlayerBar from '../player/PlayerBar'
+import FloatingVibeButton from '../vibePulse/FloatingVibeButton'
 
-export default function MainLayout({ activeTab, onSelectTab, tasteAnchors, onSaveTasteAnchors, children }) {
+export default function MainLayout({
+  activeTab,
+  onSelectTab,
+  tasteAnchors,
+  onSaveTasteAnchors,
+  onOpenVibePicker,
+  children,
+}) {
   return (
     <div className="h-screen flex flex-col bg-spotify-black">
       <div className="flex flex-1 min-h-0 gap-2 p-2 pb-0">
@@ -21,6 +29,7 @@ export default function MainLayout({ activeTab, onSelectTab, tasteAnchors, onSav
           </div>
         </main>
       </div>
+      <FloatingVibeButton onClick={onOpenVibePicker} />
       <PlayerBar />
     </div>
   )

@@ -368,6 +368,57 @@ Production build (`npm run build`) succeeds throughout with no errors.
 
 **Result:** ✅ Working as expected, no regressions from prior phases.
 
+### Follow-up — Global floating vibe button, profile privacy, sidebar chrome (2026-07-06)
+
+**What was wrong:** After the previous batch, the user reported (with a screenshot): the "Set"
+button only ever appeared transiently inside the mood-cloud modal, not as a persistent
+always-available floating button as requested; the "already picked today" empty-state message
+still read as a daily restriction even though "Change my vibe" technically bypassed it; the
+profile badge showed "Guest" instead of matching their reference screenshot; and the sidebar was
+still missing several chrome elements (Create/Expand icons, search+Recents row) present in the
+real Spotify screenshots.
+
+**What was built:** `FloatingVibeButton.jsx` — a genuinely persistent floating button (fixed
+bottom-left, positioned clear of the mood cloud's own bottom-right "Set" confirm button so the two
+never collide), rendered once in `MainLayout` so it's visible on **every tab**, not just Vibe
+Pulse. Clicking it from anywhere reuses the same navigate-and-auto-open mechanism built for the
+onboarding chain (generalized from `justCompletedOnboarding` to `pendingMoodPicker` in `App.jsx`,
+since both the onboarding-complete callback and this button now trigger the identical behavior).
+It is never gated by the daily cap. Softened the "already picked" empty-state copy to point at the
+floating button and explicitly state there's no daily limit on changing your mind. Bumped both
+modal backdrops (`MoodCloud`, `TasteAnchorsModal`) from `bg-black/70` to `/90` so the floating
+button doesn't visually bleed through the semi-transparent backdrop when a modal is open. Sidebar
+gained decorative Create (+) and Expand icons in the Library header, plus a search icon +
+"Recents" label row above the Artists list, matching the reference screenshot layout.
+
+**Profile privacy fix:** the user separately clarified they do not want their real name anywhere
+in the code or UI, even as a "default" value — an earlier intermediate version of this fix had
+briefly defaulted `ProfileBadge` to their actual first name (inferred from session context) before
+this was caught and corrected. `ProfileBadge` now shows **only a round avatar with a single
+generic placeholder initial ("P")** — no visible name text at all, matching how real Spotify's own
+top bar looks (avatar only, no name label next to it). Default storage value changed to the
+literal placeholder string `'P'`, not tied to any real name. Confirmed via `grep` that no personal
+name string appears anywhere in the repo.
+
+**Bug found and fixed while testing:** dismissing the onboarding-auto-opened mood cloud
+immediately revealed a *second*, separate mood-cloud instance underneath (the daily-prompt
+trigger, since first onboarding completion is necessarily also the first Vibe Pulse visit of the
+day) — a real double-modal stacking bug, not just a test artifact. Fixed by having the manual
+mood-cloud's pick/dismiss handlers also resolve today's daily prompt state when it hasn't been
+resolved yet, so interacting with either instance consumes both instead of leaving one stacked
+behind the other.
+
+**How it was tested:** Ran `npm run dev` with the usual mocks. Verified: profile badge renders
+exactly `"P"` with no other text; the floating button is visible on Home (not just Vibe Pulse);
+clicking it from Home navigates to Vibe Pulse and opens the mood cloud; picking a mood + Set fires
+1 Groq call, and clicking the floating button again immediately afterward reopens the mood cloud
+with zero blocking, and a second pick fires a 2nd Groq call in the same session — confirming no
+daily cap on the manual path; dismissing the onboarding mood cloud now closes it fully in one tap
+(no more stacked second modal); sidebar Create/Expand icons and the Recents row are present.
+`npm run build` succeeds.
+
+**Result:** ✅ Working as expected, including the fixed double-modal bug. No regressions.
+
 ### Phase 9 — Deploy to Vercel (2026-07-06, in progress)
 
 **Pre-deploy checks done:** Ran `npm run build` — succeeds cleanly (`dist/index.html`,

@@ -31,7 +31,10 @@ function AppShell() {
   const [onboardingSeen, setOnboardingSeen] = useLocalStorage(STORAGE_KEYS.ONBOARDING_SEEN, false)
   const [showTasteModal, setShowTasteModal] = useState(false)
   const [isOnboardingFlow, setIsOnboardingFlow] = useState(false)
-  const [justCompletedOnboarding, setJustCompletedOnboarding] = useState(false)
+  // One-shot signal telling VibePulse to auto-open its mood picker — set either
+  // right after finishing first-load onboarding, or any time the global
+  // floating "Set your vibe" button is tapped from anywhere in the app.
+  const [pendingMoodPicker, setPendingMoodPicker] = useState(false)
   const [bannerDismissed, setBannerDismissed] = useState(false)
   const [playCount, setPlayCount] = useState(0)
   const { currentTrack } = usePlayer()
@@ -71,13 +74,21 @@ function AppShell() {
     if (isOnboardingFlow) {
       setIsOnboardingFlow(false)
       setActiveTab('vibepulse')
-      setJustCompletedOnboarding(true)
+      setPendingMoodPicker(true)
     }
+  }
+
+  // The global floating button (visible on every tab) — always available,
+  // never gated by the daily cap. Works from anywhere, not just the Vibe
+  // Pulse tab itself.
+  const openVibePicker = () => {
+    setActiveTab('vibepulse')
+    setPendingMoodPicker(true)
   }
 
   const pageProps =
     activeTab === 'vibepulse'
-      ? { autoOpenMoodPicker: justCompletedOnboarding, onAutoOpenHandled: () => setJustCompletedOnboarding(false) }
+      ? { autoOpenMoodPicker: pendingMoodPicker, onAutoOpenHandled: () => setPendingMoodPicker(false) }
       : {}
 
   return (
@@ -86,6 +97,7 @@ function AppShell() {
       onSelectTab={setActiveTab}
       tasteAnchors={tasteAnchors}
       onSaveTasteAnchors={saveTasteAnchors}
+      onOpenVibePicker={openVibePicker}
     >
       {showBanner && (
         <TasteBanner

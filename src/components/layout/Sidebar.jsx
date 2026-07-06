@@ -63,6 +63,35 @@ function CollapseIcon({ collapsed }) {
   )
 }
 
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  )
+}
+
+function ExpandIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 3 21 3 21 9" />
+      <polyline points="9 21 3 21 3 15" />
+      <line x1="21" y1="3" x2="14" y2="10" />
+      <line x1="3" y1="21" x2="10" y2="14" />
+    </svg>
+  )
+}
+
+function SmallSearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  )
+}
+
 export default function Sidebar({ activeTab, onSelectTab, tasteAnchors, onSaveTasteAnchors }) {
   const [collapsed, setCollapsed] = useState(false)
   const [libraryTab, setLibraryTab] = useState('Artists')
@@ -104,15 +133,31 @@ export default function Sidebar({ activeTab, onSelectTab, tasteAnchors, onSaveTa
       <div className="bg-spotify-card rounded-lg flex-1 flex flex-col min-h-0">
         <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
           <h2 className="text-white font-bold text-sm">Your Library</h2>
-          <button
-            type="button"
-            onClick={() => setCollapsed((v) => !v)}
-            aria-label={collapsed ? 'Expand library' : 'Collapse library'}
-            data-testid="library-collapse-toggle"
-            className="text-spotify-gray hover:text-white cursor-pointer"
-          >
-            <CollapseIcon collapsed={collapsed} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              title="Create (not available in this prototype)"
+              className="text-spotify-gray hover:text-white cursor-pointer"
+            >
+              <PlusIcon />
+            </button>
+            <button
+              type="button"
+              title="Expand (not available in this prototype)"
+              className="text-spotify-gray hover:text-white cursor-pointer"
+            >
+              <ExpandIcon />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCollapsed((v) => !v)}
+              aria-label={collapsed ? 'Expand library' : 'Collapse library'}
+              data-testid="library-collapse-toggle"
+              className="text-spotify-gray hover:text-white cursor-pointer"
+            >
+              <CollapseIcon collapsed={collapsed} />
+            </button>
+          </div>
         </div>
 
         {!collapsed && (
@@ -132,6 +177,15 @@ export default function Sidebar({ activeTab, onSelectTab, tasteAnchors, onSaveTa
                 </button>
               ))}
             </div>
+
+            {libraryTab === 'Artists' && (
+              <div className="flex items-center justify-between px-4 pb-2 shrink-0">
+                <button type="button" title="Search in Your Library" className="text-spotify-gray hover:text-white cursor-pointer">
+                  <SmallSearchIcon />
+                </button>
+                <span className="text-spotify-gray text-xs font-bold cursor-pointer hover:text-white">Recents</span>
+              </div>
+            )}
 
             <div className="flex-1 min-h-0 overflow-y-auto" data-testid="library-scroll-area">
               {libraryTab === 'Artists' &&

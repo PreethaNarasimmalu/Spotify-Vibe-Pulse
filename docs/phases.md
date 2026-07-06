@@ -181,6 +181,22 @@ detailed description of a reworked onboarding/Vibe Pulse flow):
 See `docs/status.md` for the three clarifying questions asked before implementing and the full
 verification log (14+ checks against real mocked Groq/iTunes/DOM state, all passing).
 
+## Follow-up — Global floating vibe button, profile privacy, sidebar chrome (2026-07-06)
+**Files:** `src/components/vibePulse/FloatingVibeButton.jsx` (new), updated `App.jsx`,
+`MainLayout.jsx`, `VibePulse.jsx`, `ProfileBadge.jsx`, `Sidebar.jsx`, `MoodCloud.jsx`,
+`TasteAnchorsModal.jsx`.
+
+The "Set" button from the previous batch only appeared transiently inside the mood-cloud modal —
+not the persistent, always-visible floating button that was actually requested. Added
+`FloatingVibeButton.jsx`, rendered once in `MainLayout` (visible on every tab), reusing the same
+navigate-and-auto-open mechanism as the onboarding chain and never gated by the daily cap.
+`ProfileBadge` reworked to show only a round avatar with a generic placeholder initial ("P") — no
+visible name text at all, and no real personal name in the code, per explicit privacy instruction.
+Sidebar gained decorative Create/Expand icons and a search+Recents row matching the reference
+screenshot. Fixed a real bug found while testing: dismissing the onboarding-auto-opened mood cloud
+immediately revealed a second, separate daily-prompt mood cloud stacked behind it — fixed by having
+the manual picker's handlers also resolve the daily prompt state.
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live

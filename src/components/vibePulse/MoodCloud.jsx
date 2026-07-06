@@ -12,7 +12,7 @@ export default function MoodCloud({ onSelectMood, onDismiss, dismissible = true 
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4"
       onClick={dismissible ? onDismiss : undefined}
     >
       <div

@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../../lib/storage'
 
-// Lightweight local display name — not real auth/accounts, just a cosmetic
-// stand-in for the profile name/avatar Spotify shows in its top bar.
+// Lightweight local avatar — not real auth/accounts, just a cosmetic stand-in
+// for the account avatar Spotify shows in its top bar. Matches Spotify's own
+// top bar, which shows only a round initial avatar, no visible name text.
 export default function ProfileBadge() {
-  const [name, setName] = useLocalStorage(STORAGE_KEYS.PROFILE_NAME, 'Guest')
+  const [name, setName] = useLocalStorage(STORAGE_KEYS.PROFILE_NAME, 'P')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(name)
 
@@ -16,7 +17,7 @@ export default function ProfileBadge() {
 
   const commit = () => {
     const trimmed = draft.trim()
-    setName(trimmed || 'Guest')
+    setName(trimmed || 'P')
     setEditing(false)
   }
 
@@ -33,25 +34,23 @@ export default function ProfileBadge() {
         }}
         autoFocus
         data-testid="profile-name-input"
-        className="bg-black/40 border border-spotify-green rounded-full px-3 py-1 text-white text-sm w-32 focus:outline-none"
+        placeholder="Initial"
+        className="bg-black/40 border border-spotify-green rounded-full px-3 py-1 text-white text-sm w-20 text-center focus:outline-none"
       />
     )
   }
 
-  const initial = name.trim().charAt(0).toUpperCase() || 'G'
+  const initial = name.trim().charAt(0).toUpperCase() || 'P'
 
   return (
     <button
       type="button"
       onClick={startEditing}
       data-testid="profile-badge"
-      title="Click to change your display name"
-      className="flex items-center gap-2 bg-black/40 hover:bg-black/60 rounded-full pl-1 pr-3 py-1 cursor-pointer transition-colors"
+      title="Click to change your avatar initial"
+      className="w-8 h-8 rounded-full bg-spotify-green text-black text-sm font-bold flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
     >
-      <span className="w-6 h-6 rounded-full bg-spotify-green text-black text-xs font-bold flex items-center justify-center">
-        {initial}
-      </span>
-      <span className="text-white text-sm font-medium">{name}</span>
+      {initial}
     </button>
   )
 }
