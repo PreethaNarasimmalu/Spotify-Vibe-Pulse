@@ -3,6 +3,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../lib/storage'
 import { getMoodRecommendations } from '../api/groq'
 import { searchByArtistTrack } from '../api/itunes'
+import { recordDailyVibeResponse, recordVibeButtonTap, recordSuggestionsShown } from '../lib/metrics'
 import MoodCloud from '../components/vibePulse/MoodCloud'
 import SuggestionGrid from '../components/vibePulse/SuggestionGrid'
 import ChangeVibeButton from '../components/vibePulse/ChangeVibeButton'
@@ -34,7 +35,9 @@ export default function VibePulse() {
     try {
       const tracks = await getMoodRecommendations(tasteAnchors, mood)
       const resolved = await Promise.all(tracks.map((t) => searchByArtistTrack(t.artist, t.track)))
-      setSuggestions(resolved.filter(Boolean))
+      const found = resolved.filter(Boolean)
+      setSuggestions(found)
+      recordSuggestionsShown(found.length)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -44,11 +47,13 @@ export default function VibePulse() {
 
   const handleDailyMoodPick = (mood) => {
     setDailyPrompt({ lastShownDate: today, lastResponse: 'picked' })
+    recordDailyVibeResponse('picked')
     runMoodQuery(mood)
   }
 
   const handleDailyDismiss = () => {
     setDailyPrompt({ lastShownDate: today, lastResponse: 'dismissed' })
+    recordDailyVibeResponse('dismissed')
   }
 
   const handleManualMoodPick = (mood) => {
@@ -56,11 +61,16 @@ export default function VibePulse() {
     runMoodQuery(mood)
   }
 
+  const handleChangeVibeClick = () => {
+    recordVibeButtonTap()
+    setManualPromptOpen(true)
+  }
+
   return (
     <div className="pt-4">
       <div className="flex items-center gap-3 mb-6">
         <h2 className="text-white text-2xl font-bold">Vibe Pulse</h2>
-        <ChangeVibeButton onClick={() => setManualPromptOpen(true)} />
+        <ChangeVibeButton onClick={handleChangeVibeClick} />
       </div>
 
       {manualPromptOpen && (

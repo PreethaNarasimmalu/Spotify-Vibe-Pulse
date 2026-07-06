@@ -87,13 +87,18 @@ independent of the daily cap, and re-opens the mood cloud on demand (same Groq/i
 Phase 5, via a separate `manualPromptOpen` state that never touches `dailyVibePrompt`). No new API
 calls beyond what Phase 5 already makes.
 
-## Phase 7 — Debug Metrics panel
-**Files (planned):** `src/lib/metrics.js`, `src/components/debug/DebugMetricsPanel.jsx`.
+## Phase 7 — Debug Metrics panel ✅
+**Files:** `src/lib/metrics.js`, `src/components/debug/DebugMetricsPanel.jsx`.
 **Architecture:** Explicit recorder functions (`recordThumbsFeedback`, `recordVibeButtonTap`,
-`recordDailyVibeResponse`, `recordListeningTime`, `recordArtistPlay`) called from the exact
-components where each event happens (PlayerContext, SuggestionGrid, MoodCloud/ChangeVibeButton),
-writing to `localStorage.vibePulseMetrics` and `console.log`-ing each event. The panel reads and
-displays the derived metrics (thumbsRate, participation %, etc.) — no API calls.
+`recordDailyVibeResponse`, `recordListeningTime`, `recordArtistPlay`, `recordSuggestionsShown`)
+called from the exact components where each event happens (`PlayerContext`, `VibePulse.jsx`,
+`SuggestionGrid`), writing to `localStorage.vibePulseMetrics` and `console.log`-ing each event. The
+panel reads and displays the derived metrics (thumbsRate, participation %, etc.), refreshing live
+via a `CustomEvent` subscription — no API calls. `itunes.js` tags each track with its `source`
+(`home`/`vibepulse`) so `returnToArtistRate` attributes correctly. Two real bugs were found and
+fixed here: a side-effect-inside-setState-updater bug in `PlayerContext.play()` that double-counted
+`recordArtistPlay`, and a layout overlap between the debug panel and the mood cloud's dismiss
+button — see `status.md` for details.
 
 ## Phase 8 — Visual polish
 No new architecture — spacing/hover/transition refinement to match Spotify's actual UI more

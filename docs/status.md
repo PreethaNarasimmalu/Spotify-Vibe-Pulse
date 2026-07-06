@@ -25,6 +25,9 @@ See `docs/technical-flow.md` for the full architecture.
 | 2026-07-05 | Added `docs/phases.md`: a phase-wise architecture reference (what each of the 9 phases touches, its API calls, and its integration point with prior phases) — companion to the fuller `technical-flow.md`. |
 | 2026-07-05 | Per user request: Groq calls will support up to 5 API keys via `VITE_GROQ_API_KEYS` (comma-separated), with automatic failover to the next key on a retryable error (401/403/429/network failure). Sticky on the last-successful key rather than round-robining every call. Implemented in `api/groq.js` during Phase 5. |
 | 2026-07-05 | Phase 5 scope kept to the daily mood-cloud path only (per the spec's own build-order split) — the manual "change my vibe" button and thumbs feedback are deliberately deferred to Phase 6, even though the feature-description section groups them together. Reused the same `runMoodQuery`/Groq/iTunes pipeline so Phase 6 only adds a second entry point, not new logic. |
+| 2026-07-05 | `returnToArtistRate` attribution tagged at the API layer: `itunes.js`'s `searchTracks`/`searchByArtistTrack` now take a `source` param (`'home'`/`'vibepulse'`, defaulted appropriately) embedded directly on each normalized track object, rather than mapping it on in each page. `PlayerContext.play()` reads `track.source` to attribute plays for the metric. |
+| 2026-07-05 | Found and fixed a real bug during Phase 7 testing: `PlayerContext.play()` was invoking side effects (`audio.play()`, `recordArtistPlay()`) inside a `setCurrentTrack(prevTrack => ...)` functional updater. React can invoke state updaters more than once (observed under dev StrictMode — `[metrics]` logs showed `artistPlay` firing twice per click), which double-counted metrics. Fixed by reading the previous track from a ref (`currentTrackRef`) and running all side effects directly in the event handler, not inside any setState updater. |
+| 2026-07-05 | Repositioned `DebugMetricsPanel` from fixed top-right to fixed bottom-right (above the player bar) after Playwright testing showed it overlapping and intercepting clicks on the Vibe Pulse mood cloud's dismiss button — both were anchored to the same screen region. |
 
 ## Phase status
 
@@ -38,7 +41,7 @@ See `docs/technical-flow.md` for the full architecture.
 | 4 | Taste Anchors chip-tap flow | ✅ Done — verified in browser |
 | 5 | Vibe Pulse tab (mood cloud → Groq → iTunes → cards) | ✅ Done — verified with mocked network transport |
 | 6 | Thumbs up/down + change-my-vibe button | ✅ Done — verified with mocked network transport |
-| 7 | Debug Metrics panel | ⬜ Not started |
+| 7 | Debug Metrics panel | ✅ Done — verified in browser |
 | 8 | Visual polish | ⬜ Not started |
 | 9 | Deploy to Vercel | ⬜ Not started |
 
@@ -209,4 +212,47 @@ to the header, thumbs icons render under each card and highlight gold when tappe
 
 **Result:** ✅ Working as expected, including the "manual bypasses daily cap" and "feedback stays
 isolated from taste profile" integration points. Ready for Phase 7 (Debug Metrics panel).
+
+### Phase 7 — Debug Metrics panel (2026-07-05)
+
+**What was built:** `lib/metrics.js` — recorder functions
+(`recordSuggestionsShown`, `recordThumbsFeedback`, `recordVibeButtonTap`,
+`recordDailyVibeResponse`, `recordArtistPlay`, `recordListeningTime`) writing to
+`localStorage.vibePulseMetrics`, each `console.log`-ing its event, plus `computeDerivedMetrics()`
+for the displayed percentages, and a `CustomEvent`-based `onMetricsUpdated` subscription so the
+panel refreshes live. `DebugMetricsPanel.jsx` renders all 5 spec metrics with supporting counts.
+Wired recorders at the exact point each event happens: `PlayerContext.play()` →
+`recordArtistPlay`/interval-based `recordListeningTime` while `isPlaying`; `VibePulse.jsx` →
+`recordDailyVibeResponse` on pick/dismiss, `recordVibeButtonTap` on the shuffle icon,
+`recordSuggestionsShown` after a mood query resolves; `SuggestionGrid.jsx` →
+`recordThumbsFeedback`, counting a track only once even if the user changes their thumbs vote.
+`itunes.js` updated to tag each track with a `source` (`'home'`/`'vibepulse'`) so
+`returnToArtistRate` can be attributed correctly. Toggled via the existing "Debug Metrics" button
+in the top bar.
+
+**How it was tested:** Ran `npm run dev` with the same Groq/iTunes mocks as prior phases. Verified,
+in order: (1) panel opens from the top bar showing all-zero initial state; (2) playing a Home
+track and waiting ~3.5s shows listening time tick to `0m 3s`; (3) picking a daily mood shows
+`suggestionsShown` +6 and daily participation `100% (1/1)`; (4) thumbs-up one suggestion and
+thumbs-down another shows `suggestionsRated` = 2/6, and **re-clicking thumbs-up on an
+already-rated track does not double count** (still 2, not 3); (5) tapping "change my vibe"
+increments its counter; (6) playing the same artist twice (once via a Vibe Pulse suggestion, once
+via a second manual mood round) correctly shows 1 introduced / 1 replay (100%); (7) the panel
+closes via its own X and reopens via the top-bar toggle.
+
+**Bugs found and fixed during this phase's testing (not simulated — both surfaced from real
+Playwright runs against the actual code):**
+- `PlayerContext.play()` had side effects (`audio.play()`, `recordArtistPlay()`) running inside a
+  `setCurrentTrack(prevTrack => ...)` functional updater. The `[metrics]` console log showed
+  `artistPlay` firing twice for a single click (React invoked the updater twice under dev
+  StrictMode), which inflated the replay count (3 replays instead of the correct 1 for 2 actual
+  plays). Fixed by tracking the previous track in a ref and running all side effects directly in
+  the event handler, never inside a setState updater.
+- `DebugMetricsPanel` (fixed top-right) visually and functionally overlapped the Vibe Pulse mood
+  cloud's dismiss button, which occupies the same screen region — Playwright's click actually
+  failed with "element intercepts pointer events." Fixed by repositioning the panel to
+  fixed-bottom-right, above the player bar.
+
+**Result:** ✅ Working as expected after both fixes; metric counts are now internally consistent
+(replay count matches actual play count). Ready for Phase 8 (visual polish).
 
