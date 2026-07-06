@@ -32,12 +32,14 @@ each result; clicking one calls `PlayerContext.play(track, sectionTracks)` — t
 player from Phase 2.
 **API calls:** iTunes only (no key, no billing). 3 calls on Home mount.
 
-## Phase 4 — Taste Anchors chip-tap flow ✅
+## Phase 4 — Taste Anchors chip-tap flow ✅ (revised 2026-07-06)
 **Files:** `src/lib/storage.js`, `src/hooks/useLocalStorage.js`,
 `src/components/tasteAnchors/*`, `src/App.jsx` (`AppShell`).
-**Architecture:** 4-step chip wizard (3 styles → 3 artists → 2 directors/composers → 1 singer)
-from static curated option lists — no API call, fully offline. Writes
-`{styles, artists, directors, singer, updatedAt}` to `localStorage.tasteAnchors` on save.
+**Architecture:** Originally a 4-step wizard (styles/artists/directors/singer); simplified per
+user request to a **2-step flow**: pick 1 language → pick 3 artists from a language-matched
+curated pool (`ARTISTS_BY_LANGUAGE` in `TasteAnchorsModal.jsx`, curated using live web search for
+current trends rather than static memory — see `status.md`). No API call at chip-tap time, fully
+offline. Writes `{language, artists, updatedAt}` to `localStorage.tasteAnchors` on save.
 `AppShell` counts real track plays via `currentTrack` from `PlayerContext` and shows a dismissible
 banner once `playCount >= 3` and `tasteAnchors` is unset; Sidebar's "Update your taste" opens the
 same modal on demand any time.
@@ -86,6 +88,14 @@ user's primary taste profile. The "change my vibe" icon is always visible in the
 independent of the daily cap, and re-opens the mood cloud on demand (same Groq/iTunes pipeline as
 Phase 5, via a separate `manualPromptOpen` state that never touches `dailyVibePrompt`). No new API
 calls beyond what Phase 5 already makes.
+
+**Follow-up (2026-07-06):** Added `NoNewSongsButton.jsx` next to `ChangeVibeButton` — a second
+persistent control that skips the mood cloud entirely and calls Groq directly in a new
+`mode: 'familiar'` (vs. the default `'discovery'`), which uses an inverted system prompt asking for
+well-known tracks by the user's own taste-anchor artists rather than discovery picks. Represents
+the "comfort/repeat listening" side of the discovery-vs-repetition tension the case study is about.
+Still exactly 1 Groq call, same iTunes resolution and `SuggestionGrid` rendering — only the prompt
+and the entry point (no mood word required) differ.
 
 ## Phase 7 — Debug Metrics panel ❌ Reverted (2026-07-06)
 Originally built a `lib/metrics.js` + `DebugMetricsPanel.jsx` recording the 5 case-study metrics

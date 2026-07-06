@@ -49,11 +49,11 @@ spotify-vibe-pulse/
 ## Component responsibilities
 
 - **App.jsx** — owns active tab state, renders MainLayout (Sidebar + TopBar + page + PlayerBar), wraps in PlayerContext.Provider.
-- **PlayerContext** — single `<audio>` ref, survives tab switches. Exposes `{ currentTrack, isPlaying, play(track), togglePlay(), seek(), setVolume(), progress, duration }`. Track shape: `{ trackName, artistName, artworkUrl, previewUrl }`. Increments listening-time metric while playing.
+- **PlayerContext** — single `<audio>` ref, survives tab switches. Exposes `{ currentTrack, isPlaying, play(track), togglePlay(), seek(), setVolume(), progress, duration }`. Track shape: `{ trackName, artistName, artworkUrl, previewUrl }`.
 - **PlayerBar** — pure consumer of PlayerContext; artwork/name/artist, play/pause, skip, progress (drag-to-seek within 30s clip), volume.
 - **Home.jsx** — on mount, fires 3 seed queries in parallel via itunes.js, renders sectioned card grids. Card click → `player.play(track)`.
-- **TasteAnchorsModal** — 4-step chip-tap flow (3 styles, 3 artists, 2 directors, 1 singer) from curated static chip lists. Writes `tasteAnchors` to localStorage. `TasteBanner` shows contextually (after N plays, not on first load) and via a manual "Update your taste" entry point in settings.
-- **VibePulse.jsx** — daily-cap check → MoodCloud (scattered layout) → on mood tap, groq.js call → 6 `{artist, track}` → `Promise.all(itunes.searchByArtistTrack)` → SuggestionGrid of TrackCards with thumbs. ChangeVibeButton always visible, independent of daily cap.
+- **TasteAnchorsModal** — 2-step chip-tap flow: pick 1 language, then pick 3 artists from a language-matched curated pool (the artist options shown depend on the language just picked). Writes `{language, artists, updatedAt}` to `localStorage.tasteAnchors`. `TasteBanner` shows contextually (after N plays, not on first load) and via a manual "Update your taste" entry point in settings.
+- **VibePulse.jsx** — daily-cap check → MoodCloud (scattered layout) → on mood tap, groq.js call (discovery mode) → 6 `{artist, track}` → `Promise.all(itunes.searchByArtistTrack)` → SuggestionGrid of TrackCards with thumbs. `ChangeVibeButton` always visible, independent of daily cap, reopens the mood cloud. `NoNewSongsButton` (also always visible) skips the mood cloud entirely and fires a Groq call in familiar mode for comfort/repeat-listening picks by the user's chosen artists.
 
 ## State management
 
@@ -109,10 +109,18 @@ Body: {
 }
 ```
 
-Exactly 1 LLM call per mood tap (daily prompt or manual "change my vibe" — same code path),
-returning all 6 track recommendations in one response. Response parsed as
+Exactly 1 LLM call per mood tap (daily prompt, manual "change my vibe", or "no new songs" — same
+code path), returning all 6 track recommendations in one response. Response parsed as
 `JSON.parse(choices[0].message.content)` → `{ tracks: [{artist, track}, ...] }`, wrapped in
 try/catch with a fallback (empty array + inline error state) on parse failure.
+
+Two system prompts, selected by a `mode` param (`'discovery'` default, or `'familiar'`):
+- **discovery** — the original prompt: mix of well-known/lesser-known tracks fitting the mood,
+  prioritizing the listener's preferred language.
+- **familiar** — used by the "No new songs" button: explicitly asks for well-known, popular
+  tracks specifically by the listener's chosen artists (or very similar ones), not discovery —
+  the inverse framing, for comfort/repeat listening on demand. No mood word is required for this
+  path; it bypasses the mood cloud entirely and fires immediately.
 
 ### Multi-key rotation
 
@@ -129,7 +137,7 @@ not change the request/response shape above.
 
 ```js
 // key: "tasteAnchors"
-{ styles: string[3], artists: string[3], directors: string[2], singer: string[1], updatedAt: ISOString }
+{ language: string, artists: string[3], updatedAt: ISOString }
 
 // key: "vibePulseFeedback"  — isolated from tasteAnchors, never mutates it
 { "<artist>::<track>": "up" | "down", ... }

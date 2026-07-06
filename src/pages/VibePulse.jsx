@@ -6,6 +6,7 @@ import { searchByArtistTrack } from '../api/itunes'
 import MoodCloud from '../components/vibePulse/MoodCloud'
 import SuggestionGrid from '../components/vibePulse/SuggestionGrid'
 import ChangeVibeButton from '../components/vibePulse/ChangeVibeButton'
+import NoNewSongsButton from '../components/vibePulse/NoNewSongsButton'
 
 function todayString() {
   return new Date().toISOString().slice(0, 10)
@@ -19,6 +20,7 @@ export default function VibePulse() {
   })
   const [manualPromptOpen, setManualPromptOpen] = useState(false)
   const [selectedMood, setSelectedMood] = useState(null)
+  const [mode, setMode] = useState('discovery')
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -26,13 +28,14 @@ export default function VibePulse() {
   const today = todayString()
   const showDailyPrompt = dailyPrompt.lastShownDate !== today
 
-  const runMoodQuery = async (mood) => {
+  const runMoodQuery = async (mood, queryMode = 'discovery') => {
     setSelectedMood(mood)
+    setMode(queryMode)
     setLoading(true)
     setError(null)
     setSuggestions([])
     try {
-      const tracks = await getMoodRecommendations(tasteAnchors, mood)
+      const tracks = await getMoodRecommendations(tasteAnchors, mood, queryMode)
       const resolved = await Promise.all(tracks.map((t) => searchByArtistTrack(t.artist, t.track)))
       setSuggestions(resolved.filter(Boolean))
     } catch (err) {
@@ -56,11 +59,18 @@ export default function VibePulse() {
     runMoodQuery(mood)
   }
 
+  const handleNoNewSongs = () => {
+    runMoodQuery('familiar', 'familiar')
+  }
+
+  const heading = mode === 'familiar' ? 'Your familiar favorites' : `For your "${selectedMood}" mood`
+
   return (
     <div className="pt-4">
       <div className="flex items-center gap-3 mb-6">
         <h2 className="text-white text-2xl font-bold">Vibe Pulse</h2>
         <ChangeVibeButton onClick={() => setManualPromptOpen(true)} />
+        <NoNewSongsButton onClick={handleNoNewSongs} />
       </div>
 
       {manualPromptOpen && (
@@ -73,14 +83,14 @@ export default function VibePulse() {
 
       {!manualPromptOpen && !showDailyPrompt && !selectedMood && (
         <p className="text-spotify-gray text-sm" data-testid="vibe-pulse-empty">
-          You've already picked today's vibe. Come back tomorrow, or tap the shuffle icon above to
-          change your vibe right now.
+          You've already picked today's vibe. Come back tomorrow, tap the shuffle icon to change
+          your vibe, or tap "No new songs" for familiar favorites right now.
         </p>
       )}
 
       {loading && (
         <p className="text-spotify-gray text-sm mt-4" data-testid="vibe-pulse-loading">
-          Finding tracks for "{selectedMood}"…
+          Finding tracks…
         </p>
       )}
       {error && (
@@ -89,7 +99,7 @@ export default function VibePulse() {
         </p>
       )}
 
-      {suggestions.length > 0 && <SuggestionGrid tracks={suggestions} mood={selectedMood} />}
+      {suggestions.length > 0 && <SuggestionGrid tracks={suggestions} heading={heading} />}
     </div>
   )
 }

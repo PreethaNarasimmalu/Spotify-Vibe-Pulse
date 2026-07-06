@@ -1,78 +1,46 @@
 import { useState } from 'react'
 import ChipGroup from './ChipGroup'
 
-const STEPS = [
-  {
-    key: 'styles',
-    label: 'Pick 3 music styles',
-    max: 3,
-    options: [
-      'Pop', 'Hip-Hop', 'R&B', 'Rock', 'Indie', 'Electronic', 'K-Pop', 'Jazz',
-      'Country', 'Latin', 'Afrobeats', 'Lo-fi', 'Classical', 'Metal', 'Reggae',
-    ],
-  },
-  {
-    key: 'artists',
-    label: 'Pick 3 artists',
-    max: 3,
-    options: [
-      'Taylor Swift', 'Drake', 'The Weeknd', 'Billie Eilish', 'Bad Bunny',
-      'Kendrick Lamar', 'Dua Lipa', 'Ed Sheeran', 'Beyoncé', 'SZA',
-      'Travis Scott', 'Olivia Rodrigo', 'Arijit Singh', 'BTS', 'Coldplay',
-    ],
-  },
-  {
-    key: 'directors',
-    label: 'Pick 2 music directors / composers',
-    max: 2,
-    options: [
-      'Hans Zimmer', 'A.R. Rahman', 'John Williams', 'Pritam',
-      'Ludwig Göransson', 'Ilaiyaraaja', 'Danny Elfman', 'Max Richter',
-    ],
-  },
-  {
-    key: 'singer',
-    label: 'Pick 1 singer',
-    max: 1,
-    options: [
-      'Arijit Singh', 'Adele', 'Frank Ocean', 'Whitney Houston',
-      'Sam Smith', 'Rihanna', 'Shreya Ghoshal', 'John Legend',
-    ],
-  },
-]
+export const LANGUAGES = ['English', 'Hindi', 'Punjabi', 'Tamil', 'Telugu', 'Korean']
+
+// Curated per-language pools reflecting current (2026) trending/Gen-Z-relevant artists,
+// not just generic all-time favorites — see docs/status.md for the research behind these.
+export const ARTISTS_BY_LANGUAGE = {
+  English: ['Drake', 'Taylor Swift', 'Bad Bunny', 'Bruno Mars', 'The Weeknd', 'Justin Bieber'],
+  Hindi: ['Akasa', 'Arijit Singh', 'Pritam', 'Shreya Ghoshal', 'Neha Kakkar', 'Sonu Nigam'],
+  Punjabi: ['AP Dhillon', 'Diljit Dosanjh', 'Sidhu Moose Wala', 'Karan Aujla'],
+  Tamil: ['Anirudh Ravichander', 'Sid Sriram', 'A.R. Rahman', 'Ilaiyaraaja'],
+  Telugu: ['Sid Sriram', 'Thaman S', 'Devi Sri Prasad', 'A.R. Rahman'],
+  Korean: ['BTS', 'BLACKPINK', 'NewJeans', 'Stray Kids'],
+}
 
 export default function TasteAnchorsModal({ onClose, onSave, initial }) {
   const [stepIndex, setStepIndex] = useState(0)
-  const [answers, setAnswers] = useState(() => ({
-    styles: initial?.styles ?? [],
-    artists: initial?.artists ?? [],
-    directors: initial?.directors ?? [],
-    singer: initial?.singer ?? [],
-  }))
+  const [language, setLanguage] = useState(initial?.language ?? null)
+  const [artists, setArtists] = useState(initial?.artists ?? [])
 
-  const step = STEPS[stepIndex]
-  const currentSelection = answers[step.key]
-  const isComplete = currentSelection.length === step.max
-  const isLastStep = stepIndex === STEPS.length - 1
+  const isLanguageStep = stepIndex === 0
+  const isLastStep = stepIndex === 1
+  const artistOptions = language ? ARTISTS_BY_LANGUAGE[language] : []
+  const isComplete = isLanguageStep ? Boolean(language) : artists.length === 3
 
-  const toggleOption = (option) => {
-    setAnswers((prev) => {
-      const current = prev[step.key]
-      const next = current.includes(option)
-        ? current.filter((o) => o !== option)
-        : current.length < step.max
-          ? [...current, option]
-          : current
-      return { ...prev, [step.key]: next }
-    })
+  const toggleLanguage = (option) => {
+    setLanguage((prev) => (prev === option ? null : option))
+    setArtists([])
+  }
+
+  const toggleArtist = (option) => {
+    setArtists((prev) =>
+      prev.includes(option) ? prev.filter((o) => o !== option) : prev.length < 3 ? [...prev, option] : prev,
+    )
   }
 
   const handleNext = () => {
     if (!isComplete) return
     if (isLastStep) {
-      onSave({ ...answers, updatedAt: new Date().toISOString() })
+      onSave({ language, artists, updatedAt: new Date().toISOString() })
     } else {
-      setStepIndex((i) => i + 1)
+      setStepIndex(1)
     }
   }
 
@@ -84,20 +52,28 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
         data-testid="taste-anchors-modal"
       >
         <div className="flex items-center justify-between mb-1">
-          <p className="text-spotify-gray text-xs font-bold uppercase tracking-wide">
-            Step {stepIndex + 1} of {STEPS.length}
-          </p>
+          <p className="text-spotify-gray text-xs font-bold uppercase tracking-wide">Step {stepIndex + 1} of 2</p>
           <button type="button" onClick={onClose} aria-label="Close" className="text-spotify-gray hover:text-white cursor-pointer">
             ✕
           </button>
         </div>
-        <h2 className="text-white text-xl font-bold mb-4">{step.label}</h2>
-        <ChipGroup options={step.options} selected={currentSelection} max={step.max} onToggle={toggleOption} />
+
+        {isLanguageStep ? (
+          <>
+            <h2 className="text-white text-xl font-bold mb-4">Which language do you listen to most?</h2>
+            <ChipGroup options={LANGUAGES} selected={language ? [language] : []} max={1} onToggle={toggleLanguage} />
+          </>
+        ) : (
+          <>
+            <h2 className="text-white text-xl font-bold mb-4">Pick 3 artists you like</h2>
+            <ChipGroup options={artistOptions} selected={artists} max={3} onToggle={toggleArtist} />
+          </>
+        )}
 
         <div className="flex items-center justify-between mt-6">
           <button
             type="button"
-            onClick={() => setStepIndex((i) => Math.max(0, i - 1))}
+            onClick={() => setStepIndex(0)}
             disabled={stepIndex === 0}
             className="text-spotify-gray hover:text-white disabled:opacity-30 disabled:cursor-default text-sm font-bold cursor-pointer"
           >

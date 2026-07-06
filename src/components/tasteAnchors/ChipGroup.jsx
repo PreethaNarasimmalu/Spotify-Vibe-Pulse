@@ -3,7 +3,9 @@ export default function ChipGroup({ options, selected, max, onToggle }) {
     <div className="flex flex-wrap gap-2">
       {options.map((option) => {
         const isSelected = selected.includes(option)
-        const disabled = !isSelected && selected.length >= max
+        // At max=1 this behaves like a radio group — clicking any chip always
+        // replaces the pick, so other options never need to be disabled.
+        const disabled = max > 1 && !isSelected && selected.length >= max
         return (
           <button
             key={option}

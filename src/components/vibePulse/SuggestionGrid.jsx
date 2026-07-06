@@ -7,7 +7,7 @@ function feedbackKey(track) {
   return `${track.artistName}::${track.trackName}`
 }
 
-export default function SuggestionGrid({ tracks, mood }) {
+export default function SuggestionGrid({ tracks, heading }) {
   const { play, currentTrack, isPlaying } = usePlayer()
   // Isolated from tasteAnchors by design: Vibe Pulse thumbs feedback must never
   // silently alter the user's primary taste profile/recommendations.
@@ -20,9 +20,7 @@ export default function SuggestionGrid({ tracks, mood }) {
 
   return (
     <div className="mt-6" data-testid="suggestion-grid">
-      <p className="text-spotify-gray text-xs uppercase font-bold tracking-wide mb-3">
-        For your "{mood}" mood
-      </p>
+      <p className="text-spotify-gray text-xs uppercase font-bold tracking-wide mb-3">{heading}</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {tracks.map((track) => (
           <TrackCard

@@ -1,12 +1,22 @@
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = 'llama-3.3-70b-versatile'
 
-const SYSTEM_PROMPT =
-  'You are a music recommendation engine. Given a listener\'s taste anchors (styles, artists, ' +
-  'music directors, singer) and their current mood word, return exactly 6 track recommendations ' +
-  'as strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. Favor a ' +
+const DISCOVERY_SYSTEM_PROMPT =
+  'You are a music recommendation engine. Given a listener\'s taste anchors (preferred language, ' +
+  'favorite artists) and their current mood word, return exactly 6 track recommendations as ' +
+  'strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. Favor a ' +
   'mix of well-known and lesser-known tracks that genuinely fit the mood and taste, not just ' +
-  'top-40 picks.'
+  'top-40 picks. Prioritize tracks in the listener\'s preferred language where it fits the mood.'
+
+// Used by the "No new songs" button — the inverse of the discovery prompt: the
+// listener explicitly wants familiar comfort listening, not discovery.
+const FAMILIAR_SYSTEM_PROMPT =
+  'You are a music recommendation engine. Given a listener\'s taste anchors (preferred language, ' +
+  'favorite artists), return exactly 6 track recommendations as strict JSON: ' +
+  '{"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. The listener wants ' +
+  'familiar comfort listening, not discovery — favor well-known, popular tracks specifically by ' +
+  'the artists they listed (or artists very similar to them), not obscure or new picks. ' +
+  'Prioritize their preferred language.'
 
 function loadApiKeys() {
   const multi = import.meta.env.VITE_GROQ_API_KEYS
@@ -25,11 +35,12 @@ function isRetryableStatus(status) {
   return status === 401 || status === 403 || status === 429
 }
 
-export async function getMoodRecommendations(tasteAnchors, mood) {
+export async function getMoodRecommendations(tasteAnchors, mood, mode = 'discovery') {
   if (apiKeys.length === 0) {
     throw new Error('No Groq API key configured (set VITE_GROQ_API_KEY or VITE_GROQ_API_KEYS)')
   }
 
+  const systemPrompt = mode === 'familiar' ? FAMILIAR_SYSTEM_PROMPT : DISCOVERY_SYSTEM_PROMPT
   let lastError = null
 
   for (let attempt = 0; attempt < apiKeys.length; attempt++) {
@@ -44,7 +55,7 @@ export async function getMoodRecommendations(tasteAnchors, mood) {
         body: JSON.stringify({
           model: MODEL,
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: JSON.stringify({ tasteAnchors, mood }) },
           ],
           response_format: { type: 'json_object' },

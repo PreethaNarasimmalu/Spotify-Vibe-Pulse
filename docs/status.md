@@ -29,6 +29,10 @@ See `docs/technical-flow.md` for the full architecture.
 | 2026-07-05 | Found and fixed a real bug during Phase 7 testing: `PlayerContext.play()` was invoking side effects (`audio.play()`, `recordArtistPlay()`) inside a `setCurrentTrack(prevTrack => ...)` functional updater. React can invoke state updaters more than once (observed under dev StrictMode — `[metrics]` logs showed `artistPlay` firing twice per click), which double-counted metrics. Fixed by reading the previous track from a ref (`currentTrackRef`) and running all side effects directly in the event handler, not inside any setState updater. |
 | 2026-07-05 | Repositioned `DebugMetricsPanel` from fixed top-right to fixed bottom-right (above the player bar) after Playwright testing showed it overlapping and intercepting clicks on the Vibe Pulse mood cloud's dismiss button — both were anchored to the same screen region. |
 | 2026-07-06 | **Reverted Phase 7 entirely per user request.** The Debug Metrics panel isn't a user-facing feature real Spotify would ship (that instrumentation lives in an internal analytics dashboard, not the client), and the user wants only user-specific features in this prototype. Removed `lib/metrics.js`, `components/debug/DebugMetricsPanel.jsx`, the "Debug Metrics" top-bar button, all `record*` calls from `PlayerContext`/`VibePulse.jsx`/`SuggestionGrid.jsx`, the now-dead `source` tagging in `itunes.js` (it only existed to feed `returnToArtistRate`), and the unused `VIBE_PULSE_METRICS` storage key. Verified via Playwright that Home, Vibe Pulse, and thumbs feedback all still work correctly with zero references to metrics/debug remaining in `src/`, and that the production build succeeds. |
+| 2026-07-06 | **Simplified Taste Anchors per user request.** Dropped the "styles/genres" category entirely (user: "leave the styles thing why is that needed"). Also dropped separate "music directors" and "singer" categories — merged into "artists," which is now drawn from a language-specific pool. Final flow: pick 1 language → pick 3 artists from that language's curated pool. `localStorage.tasteAnchors` schema is now `{language, artists, updatedAt}`. |
+| 2026-07-06 | Used live `WebSearch` (not just training memory) to identify actually-trending Gen Z-relevant artists per language before curating the per-language pools, per user request ("check for the trendy songs among genz... suggest the artists"). Found real July 2026 data: Drake/Taylor Swift/Bad Bunny topping global streams, Bruno Mars/Justin Bieber/The Weeknd leading monthly listeners; Punjabi music at 39% share of India's regional streaming led by AP Dhillon/Diljit Dosanjh; Akasa as a 2025-26 Bollywood breakout; and Gen-Z-specific 2026 names (Tsumyoki, W.i.S.H, Reble) surfaced in India-focused coverage that wouldn't have come from static memory. Tamil/Telugu/Korean pools remained based on general knowledge since the search didn't surface fresher names for those — flagged as such to the user before implementing. |
+| 2026-07-06 | Fixed a real UX bug in `ChipGroup.jsx` while building the language step: single-select (`max=1`) chip groups previously disabled all other options once one was picked, forcing a deselect-then-reselect to change your answer. Now `max > 1` is required to trigger the "disable when full" behavior, so single-select behaves like a proper radio group — click any option to switch directly. This was a latent bug since the original "singer" step (also `max=1`), just never surfaced/fixed until now. |
+| 2026-07-06 | Added a "No new songs" button (user chose this label over "Stick to my old songs" — shorter, matches the existing pill-button styling of "Change my vibe") next to `ChangeVibeButton` in Vibe Pulse. It skips the mood cloud entirely and calls Groq with a new `mode: 'familiar'` system prompt — the inverse of the discovery prompt, explicitly asking for well-known tracks by the user's own taste-anchor artists rather than discovery picks. Reuses the same iTunes resolution and `SuggestionGrid` rendering; `SuggestionGrid` now takes a `heading` prop instead of deriving text from `mood` directly, so the familiar-mode heading ("Your familiar favorites") reads naturally instead of `For your "familiar" mood`. |
 | 2026-07-05 | Phase 8 polish: replaced emoji-based playback controls (⏮⏸⏭▶🔊) with hand-drawn SVG icons (`components/icons/PlaybackIcons.jsx`) — emoji render inconsistently across systems/browsers and don't match Spotify's icon language. Kept thumbs up/down as emoji (👍👎), a deliberate, common choice for reaction icons distinct from core transport controls. Also replaced the native `<input type=range>` volume control with a custom click-to-set slider (`VolumeSlider.jsx`) matching the look of the existing `ProgressBar`, since native range inputs render as a bulgy OS-styled widget that doesn't match Spotify's thin minimal sliders. |
 
 ## Phase status
@@ -269,6 +273,34 @@ localStorage key. Re-verified via Playwright: no "Debug Metrics" text anywhere i
 cards still play, the Vibe Pulse mood cloud/Groq/iTunes pipeline still works, thumbs feedback still
 writes to `vibePulseFeedback` correctly, and `npm run build` still succeeds (bundle shrank
 slightly, ~216KB vs ~221KB, consistent with the removed code). No regressions.
+
+### Taste Anchors simplification + "No new songs" button (2026-07-06)
+
+**What was built:** `TasteAnchorsModal.jsx` rewritten from a 4-step wizard (styles/artists/
+directors/singer) down to 2 steps: pick 1 language (`LANGUAGES`), then pick 3 artists from a
+language-matched pool (`ARTISTS_BY_LANGUAGE`, curated using live web search results for
+current/Gen-Z-relevant trends, not just static training knowledge). `ChipGroup.jsx` fixed so
+single-select (`max=1`) groups act as a proper radio group instead of disabling all other options
+once one is picked. `api/groq.js` now takes a `mode` param (`'discovery'` default or `'familiar'`)
+selecting between two system prompts. `NoNewSongsButton.jsx` added next to `ChangeVibeButton` in
+`VibePulse.jsx`; tapping it calls `runMoodQuery('familiar', 'familiar')` directly — no mood cloud
+needed — using the familiar-mode prompt. `SuggestionGrid.jsx` now takes a `heading` prop (computed
+in `VibePulse.jsx` based on mode) instead of deriving text from a raw mood string.
+
+**How it was tested:** Ran `npm run dev` with the same Groq/iTunes Playwright route mocks used
+throughout. Verified: (1) Taste Anchors modal is now 2 steps with the correct headings; (2)
+clicking a second language chip (e.g. Punjabi after Hindi) switches directly in one tap — confirms
+the `ChipGroup` radio-group fix; (3) the artist pool shown updates to match the selected language
+(confirmed Punjabi → AP Dhillon/Diljit Dosanjh/Sidhu Moose Wala/Karan Aujla); (4) saving writes the
+exact new schema `{"language":"Punjabi","artists":[...],"updatedAt":"..."}`; (5) a normal mood pick
+sends `tasteAnchors` (language+artists) and the mood to Groq using the discovery system prompt,
+heading reads `For your "chill" mood`; (6) tapping "No new songs" fires a second Groq call using
+the familiar system prompt without ever showing the mood cloud, heading reads "Your familiar
+favorites"; exactly 2 total Groq calls for the 2 actions taken (1 each, confirming no duplicate
+calls). Visually confirmed via screenshot: the button renders correctly next to the shuffle icon
+with a crossed-out-shuffle glyph and clear "No new songs" label.
+
+**Result:** ✅ Working as expected, no regressions. `npm run build` succeeds.
 
 ### Phase 8 — Visual polish (2026-07-05)
 
