@@ -23,7 +23,11 @@ export default function SuggestionList({ tracks, heading }) {
       <p className="text-spotify-gray text-xs uppercase font-bold tracking-wide mb-3">{heading}</p>
       <div className="flex flex-col">
         {tracks.map((track, index) => {
-          const isActive = currentTrack?.id === track.id && isPlaying
+          // "Current" = loaded into the player (played at least once), whether
+          // still playing or paused — feedback is only relevant once someone
+          // has actually listened, not blindly shown on every row up front.
+          const isCurrentTrack = currentTrack?.id === track.id
+          const isActive = isCurrentTrack && isPlaying
           const trackFeedback = feedback[feedbackKey(track)]
           return (
             <div
@@ -56,24 +60,31 @@ export default function SuggestionList({ tracks, heading }) {
                 <p className="text-spotify-gray text-xs truncate">{track.artistName}</p>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <button
-                  type="button"
-                  onClick={() => setTrackFeedback(track, 'up')}
-                  aria-label="Thumbs up"
-                  className={`text-base cursor-pointer transition-transform hover:scale-110 ${trackFeedback === 'up' ? 'opacity-100' : 'opacity-40'}`}
+              {isCurrentTrack && (
+                <div
+                  className="flex items-center gap-3 shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                  data-testid="suggestion-feedback"
                 >
-                  👍
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTrackFeedback(track, 'down')}
-                  aria-label="Thumbs down"
-                  className={`text-base cursor-pointer transition-transform hover:scale-110 ${trackFeedback === 'down' ? 'opacity-100' : 'opacity-40'}`}
-                >
-                  👎
-                </button>
-              </div>
+                  <span className="text-spotify-gray text-xs mr-1">Liked it?</span>
+                  <button
+                    type="button"
+                    onClick={() => setTrackFeedback(track, 'up')}
+                    aria-label="Thumbs up"
+                    className={`text-base cursor-pointer transition-transform hover:scale-110 ${trackFeedback === 'up' ? 'opacity-100' : 'opacity-40'}`}
+                  >
+                    👍
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTrackFeedback(track, 'down')}
+                    aria-label="Thumbs down"
+                    className={`text-base cursor-pointer transition-transform hover:scale-110 ${trackFeedback === 'down' ? 'opacity-100' : 'opacity-40'}`}
+                  >
+                    👎
+                  </button>
+                </div>
+              )}
             </div>
           )
         })}

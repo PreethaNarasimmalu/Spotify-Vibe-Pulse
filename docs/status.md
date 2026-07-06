@@ -467,6 +467,47 @@ system prompt text; (5) the results heading read `Familiar favorites for your "c
 
 **Result:** ✅ Working as expected. No regressions.
 
+### Follow-up — Preferences popup, round FAB consolidation, contextual thumbs (2026-07-06)
+
+**What was reported:** (1) the user still wasn't seeing the onboarding popup and wanted the sidebar
+"Preferences" tab to also open a popup instead of the inline editor built two batches ago
+("whats your problem with popup"); (2) the floating vibe button was a rectangular pill with a text
+label at bottom-**left**, when the original ask was a round button at bottom-**right**, and having
+it alongside the header's "Change my vibe" pill was redundant — "just have a change your vibe
+button... keep the one which will be better"; (3) thumbs up/down showing on every suggestion row
+upfront made no sense — feedback should only appear once a track has actually been played.
+
+**Preferences → popup:** Reversed the earlier "new inline sidebar editor" decision (the user's own
+explicit prior choice) per this new instruction. Deleted `InlinePreferencesEditor.jsx`. Sidebar's
+"Preferences" pill is no longer a second content tab — clicking it calls a new `onOpenPreferences`
+callback (threaded `App.jsx` → `MainLayout` → `Sidebar`) that opens the same `TasteAnchorsModal`
+popup used for onboarding and the contextual banner. "Artists" is now the sidebar's only real
+content view.
+
+**Round FAB consolidation:** Deleted `ChangeVibeButton.jsx` entirely (redundant once there's a
+global always-visible trigger) and removed it from `VibePulse.jsx`'s header — only `NoNewSongsButton`
+remains there, since that's a distinct action (familiar mode), not another way to open the mood
+picker. Rebuilt `FloatingVibeButton.jsx` as a genuine circular FAB (56×56, icon-only, no text)
+repositioned to `bottom-28 right-6` (previously a pill with a text label at bottom-left) — this is
+now the single, consolidated way to trigger the mood picker from anywhere in the app.
+
+**Contextual thumbs:** `SuggestionList` now only renders the thumbs up/down row (with a "Liked
+it?" label) for whichever track is currently loaded into the player (`currentTrack?.id ===
+track.id`, checked regardless of paused/playing state so feedback stays available after pausing),
+not for every row indiscriminately. Feedback is now something you're asked after you've actually
+listened to a track, not before.
+
+**How it was tested:** Ran `npm run dev` with the usual mocks, starting from a fresh onboarding
+flow. Verified: (1) the floating button is a true circle (`width === height`, 56px) positioned at
+the right edge with no visible text; (2) no "Change my vibe" text exists anywhere in the Vibe Pulse
+header, while "No new songs" remains; (3) clicking the sidebar's "Preferences" pill opens the
+`taste-anchors-modal` popup, and the old inline-editor element no longer exists in the DOM at all;
+(4) before playing anything, zero suggestion rows show a feedback control; after clicking to play
+row 3 specifically, exactly one row (that one) shows the "Liked it?" thumbs. `npm run build`
+succeeds.
+
+**Result:** ✅ Working as expected. No regressions.
+
 ### Phase 9 — Deploy to Vercel (2026-07-06, in progress)
 
 **Pre-deploy checks done:** Ran `npm run build` — succeeds cleanly (`dist/index.html`,

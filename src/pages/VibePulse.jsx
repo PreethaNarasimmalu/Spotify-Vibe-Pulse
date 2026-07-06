@@ -7,7 +7,6 @@ import { countryForLanguages } from '../lib/tasteData'
 import { getListeningHistory } from '../lib/listeningHistory'
 import MoodCloud from '../components/vibePulse/MoodCloud'
 import SuggestionList from '../components/vibePulse/SuggestionList'
-import ChangeVibeButton from '../components/vibePulse/ChangeVibeButton'
 import NoNewSongsButton from '../components/vibePulse/NoNewSongsButton'
 
 function todayString() {
@@ -96,7 +95,6 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
     <div className="pt-4">
       <div className="flex items-center gap-3 mb-6">
         <h2 className="text-white text-2xl font-bold">Vibe Pulse</h2>
-        <ChangeVibeButton onClick={() => setManualPromptOpen(true)} />
         <NoNewSongsButton onClick={handleNoNewSongs} />
       </div>
 
@@ -108,8 +106,8 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
 
       {!manualPromptOpen && !showDailyPrompt && !selectedMood && (
         <p className="text-spotify-gray text-sm" data-testid="vibe-pulse-empty">
-          Tap the green "Set your vibe" button anytime (bottom-left) to get fresh suggestions —
-          there's no daily limit on changing your mind.
+          Tap the round green button (bottom-right) anytime to get fresh suggestions — there's no
+          daily limit on changing your mind.
         </p>
       )}
 

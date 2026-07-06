@@ -86,6 +86,13 @@ function AppShell() {
     setPendingMoodPicker(true)
   }
 
+  // Sidebar's "Preferences" tab — always opens the same popup modal (not an
+  // inline editor), same as the banner's entry point.
+  const openPreferences = () => {
+    setIsOnboardingFlow(false)
+    setShowTasteModal(true)
+  }
+
   const pageProps =
     activeTab === 'vibepulse'
       ? { autoOpenMoodPicker: pendingMoodPicker, onAutoOpenHandled: () => setPendingMoodPicker(false) }
@@ -96,7 +103,7 @@ function AppShell() {
       activeTab={activeTab}
       onSelectTab={setActiveTab}
       tasteAnchors={tasteAnchors}
-      onSaveTasteAnchors={saveTasteAnchors}
+      onOpenPreferences={openPreferences}
       onOpenVibePicker={openVibePicker}
     >
       {showBanner && (

@@ -213,6 +213,18 @@ recent listening over the static onboarding list. Fixed `handleNoNewSongs` to re
 last-selected mood instead of a hardcoded placeholder, so "no new songs" stays relevant to the
 vibe the user actually set.
 
+## Follow-up — Preferences popup, round FAB, contextual thumbs (2026-07-06)
+**Files:** deleted `InlinePreferencesEditor.jsx` and `ChangeVibeButton.jsx`; updated `Sidebar.jsx`,
+`MainLayout.jsx`, `App.jsx`, `FloatingVibeButton.jsx`, `VibePulse.jsx`, `SuggestionList.jsx`.
+
+Reversed the earlier "inline sidebar editor" decision per explicit new instruction — Sidebar's
+"Preferences" pill now opens the same `TasteAnchorsModal` popup used everywhere else, instead of
+switching to inline content. Consolidated the mood-picker trigger down to one control:
+`FloatingVibeButton` is now a true circular FAB (bottom-right, icon-only), and the redundant
+header "Change my vibe" pill (`ChangeVibeButton.jsx`) was deleted outright. `SuggestionList` only
+shows thumbs feedback for the currently-loaded track, not every row up front — feedback is asked
+after listening, not before.
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live

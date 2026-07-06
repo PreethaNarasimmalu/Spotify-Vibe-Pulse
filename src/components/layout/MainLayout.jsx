@@ -8,7 +8,7 @@ export default function MainLayout({
   activeTab,
   onSelectTab,
   tasteAnchors,
-  onSaveTasteAnchors,
+  onOpenPreferences,
   onOpenVibePicker,
   children,
 }) {
@@ -19,7 +19,7 @@ export default function MainLayout({
           activeTab={activeTab}
           onSelectTab={onSelectTab}
           tasteAnchors={tasteAnchors}
-          onSaveTasteAnchors={onSaveTasteAnchors}
+          onOpenPreferences={onOpenPreferences}
         />
         <main className="flex-1 min-w-0 rounded-lg bg-gradient-to-b from-[#1f1f1f] to-spotify-black overflow-y-auto">
           <TopBar activeTab={activeTab} onSelectTab={onSelectTab} />

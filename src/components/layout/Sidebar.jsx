@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import InlinePreferencesEditor from '../tasteAnchors/InlinePreferencesEditor'
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Home', icon: HomeIcon },
@@ -7,8 +6,6 @@ const NAV_ITEMS = [
   { id: 'library', label: 'Your Library', icon: LibraryIcon },
   { id: 'vibepulse', label: 'Vibe Pulse', icon: PulseIcon },
 ]
-
-const LIBRARY_TABS = ['Artists', 'Preferences']
 
 function HomeIcon({ active }) {
   return (
@@ -92,9 +89,8 @@ function SmallSearchIcon() {
   )
 }
 
-export default function Sidebar({ activeTab, onSelectTab, tasteAnchors, onSaveTasteAnchors }) {
+export default function Sidebar({ activeTab, onSelectTab, tasteAnchors, onOpenPreferences }) {
   const [collapsed, setCollapsed] = useState(false)
-  const [libraryTab, setLibraryTab] = useState('Artists')
   const artists = tasteAnchors?.artists ?? []
 
   return (
@@ -163,51 +159,48 @@ export default function Sidebar({ activeTab, onSelectTab, tasteAnchors, onSaveTa
         {!collapsed && (
           <>
             <div className="flex gap-2 px-4 pb-2 shrink-0">
-              {LIBRARY_TABS.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setLibraryTab(tab)}
-                  data-testid={`library-tab-${tab.toLowerCase()}`}
-                  className={`text-xs font-bold px-3 py-1.5 rounded-full cursor-pointer transition-colors ${
-                    libraryTab === tab ? 'bg-white text-black' : 'bg-black/40 text-white hover:bg-black/60'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
+              <button
+                type="button"
+                data-testid="library-tab-artists"
+                className="text-xs font-bold px-3 py-1.5 rounded-full cursor-pointer bg-white text-black"
+              >
+                Artists
+              </button>
+              <button
+                type="button"
+                onClick={onOpenPreferences}
+                data-testid="library-tab-preferences"
+                title="Opens the taste preferences popup"
+                className="text-xs font-bold px-3 py-1.5 rounded-full cursor-pointer bg-black/40 text-white hover:bg-black/60 transition-colors"
+              >
+                Preferences
+              </button>
             </div>
 
-            {libraryTab === 'Artists' && (
-              <div className="flex items-center justify-between px-4 pb-2 shrink-0">
-                <button type="button" title="Search in Your Library" className="text-spotify-gray hover:text-white cursor-pointer">
-                  <SmallSearchIcon />
-                </button>
-                <span className="text-spotify-gray text-xs font-bold cursor-pointer hover:text-white">Recents</span>
-              </div>
-            )}
+            <div className="flex items-center justify-between px-4 pb-2 shrink-0">
+              <button type="button" title="Search in Your Library" className="text-spotify-gray hover:text-white cursor-pointer">
+                <SmallSearchIcon />
+              </button>
+              <span className="text-spotify-gray text-xs font-bold cursor-pointer hover:text-white">Recents</span>
+            </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto" data-testid="library-scroll-area">
-              {libraryTab === 'Artists' &&
-                (artists.length === 0 ? (
-                  <p className="text-spotify-gray text-xs p-4">No artists yet — open Preferences to set your taste.</p>
-                ) : (
-                  <div className="flex flex-col p-2">
-                    {artists.map((artist) => (
-                      <div key={artist} className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/5 cursor-pointer">
-                        <span className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
-                          {artist.charAt(0)}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{artist}</p>
-                          <p className="text-spotify-gray text-xs">Artist</p>
-                        </div>
+              {artists.length === 0 ? (
+                <p className="text-spotify-gray text-xs p-4">No artists yet — tap Preferences to set your taste.</p>
+              ) : (
+                <div className="flex flex-col p-2">
+                  {artists.map((artist) => (
+                    <div key={artist} className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/5 cursor-pointer">
+                      <span className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                        {artist.charAt(0)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{artist}</p>
+                        <p className="text-spotify-gray text-xs">Artist</p>
                       </div>
-                    ))}
-                  </div>
-                ))}
-              {libraryTab === 'Preferences' && (
-                <InlinePreferencesEditor tasteAnchors={tasteAnchors} onSave={onSaveTasteAnchors} />
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </>
