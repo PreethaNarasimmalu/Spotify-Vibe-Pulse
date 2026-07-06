@@ -140,6 +140,18 @@ pattern as `TasteAnchorsModal`) instead of an inline card; `ChangeVibeButton` go
 `localStorage.profileName`, click-to-edit) in the top-right of `TopBar`, mirroring where Spotify
 shows the account avatar.
 
+## Follow-up — Visual fidelity pass (2026-07-06)
+**Files:** `src/components/layout/TopBar.jsx`, `src/components/layout/Sidebar.jsx`,
+`src/components/layout/MainLayout.jsx`.
+User shared real Spotify screenshots and said the app didn't look like Spotify. `TopBar.jsx`
+rebuilt with a white circular Home button + white search pill (Enter navigates to the Search tab
+stub) — Spotify's top bar has no back/forward chevrons or text title, both of which the old
+`TopBar` had. `Sidebar.jsx`'s "Update your taste" panel no longer force-fills remaining sidebar
+height as an empty box; it's now a compact icon+label card. Green/black branding kept as-is per
+explicit instruction. Library rows, Premium upsell, and notification icons were deliberately not
+added — real Spotify features never in this app's scope, and non-functional decorative buttons for
+them would be dead UI.
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live
