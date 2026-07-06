@@ -1,19 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../lib/storage'
-import { getMoodRecommendations } from '../api/groq'
-import { searchByArtistTrack } from '../api/itunes'
-import { countryForLanguages } from '../lib/tasteData'
+import { fetchVibeSuggestions } from '../lib/vibeQuery'
 import { getListeningHistory } from '../lib/listeningHistory'
+import { todayString } from '../lib/date'
 import MoodCloud from '../components/vibePulse/MoodCloud'
 import SuggestionList from '../components/vibePulse/SuggestionList'
 import NoNewSongsButton from '../components/vibePulse/NoNewSongsButton'
-
-const SUGGESTION_TARGET = 10
-
-function todayString() {
-  return new Date().toISOString().slice(0, 10)
-}
 
 export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandled, tasteAnchors, onGoHome }) {
   const [dailyPrompt, setDailyPrompt] = useLocalStorage(STORAGE_KEYS.DAILY_VIBE_PROMPT, {
@@ -45,12 +38,8 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
     setError(null)
     setSuggestions([])
     try {
-      const tracks = await getMoodRecommendations(tasteAnchors, mood, queryMode, getListeningHistory())
-      const country = countryForLanguages(tasteAnchors?.languages)
-      const resolved = await Promise.all(
-        tracks.map((t) => searchByArtistTrack(t.artist, t.track, { country })),
-      )
-      setSuggestions(resolved.filter(Boolean).slice(0, SUGGESTION_TARGET))
+      const resolved = await fetchVibeSuggestions(tasteAnchors, mood, queryMode, getListeningHistory())
+      setSuggestions(resolved)
     } catch (err) {
       setError(err.message)
     } finally {

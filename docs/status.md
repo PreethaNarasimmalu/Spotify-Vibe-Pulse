@@ -618,6 +618,46 @@ re-rendered with the new call's tracks — with no additional click beyond savin
 
 **Result:** ✅ Working as expected. No regressions.
 
+### Follow-up — Onboarding no longer force-switches to Vibe Pulse tab (2026-07-06)
+
+**What was asked:** setting preferences alone (as part of the first-load onboarding flow) shouldn't
+force-navigate the user to the Vibe Pulse tab — recommendations from the onboarding mood pick should
+render inline on the Home page instead. The Vibe Pulse tab should only ever be reached because the
+user explicitly chose to go there (sidebar nav, or the floating vibe button) — not as a side effect
+of finishing preferences.
+
+**Also reported:** the first-load onboarding popup wasn't appearing on a fresh arrival. Investigated
+and this was not a code regression — `onboardingSeen` is a one-shot-ever flag in `localStorage`,
+and repeated live testing on the same browser session (including reusing one incognito window across
+many tests) had already set it to `true`, so subsequent loads correctly skip onboarding per spec. No
+fix needed there; flagged to the user that a genuinely fresh `localStorage` (new incognito window,
+or `localStorage.clear()`) is required to see it again.
+
+**What was changed:** the onboarding mood popup previously lived inside `VibePulse.jsx`, triggered by
+`App.jsx` setting `activeTab: 'vibepulse'` + a `pendingMoodPicker` flag after preferences closed/saved
+— that's what forced the tab switch. Moved this specific popup up to `App.jsx` itself: it now renders
+directly in `AppShell` (same pattern as `TasteAnchorsModal`), independent of `activeTab`. Picking a
+mood there runs the same Groq → iTunes pipeline (extracted into a new shared `lib/vibeQuery.js`
+so `VibePulse.jsx` and `App.jsx` don't duplicate that logic) and stores the result in a new
+`onboardingVibe` state, passed to `Home.jsx` as a `vibe` prop. `Home.jsx` renders a "For your
+'<mood>' mood" `SuggestionList` section (loading/error states included) right under the greeting
+whenever that vibe has results — no navigation involved, since onboarding always starts on the
+default Home tab anyway. Dismissing this popup without picking also just closes it — no navigation,
+since the user never left Home. The floating vibe button (`openVibePicker`) is deliberately
+**unchanged** — it's the explicit "go manage my vibe" action, so it still switches to the Vibe Pulse
+tab as before. Also extracted the repeated `todayString()` helper into `lib/date.js` (was duplicated
+inline).
+
+**How it was tested:** Ran a full Playwright pass (mocked Groq/iTunes) against a fresh session:
+completed the preferences step, confirmed the app never showed the "Vibe Pulse" heading (i.e., never
+left Home), confirmed the mood popup appeared, picked a mood, and confirmed 10 suggestion rows
+rendered directly on the Home page while still showing the Home search bar. Ran it again dismissing
+the mood popup without picking — confirmed the app stayed on Home with zero suggestion rows (no
+crash, no stray navigation). Separately confirmed the floating vibe button still switches to the
+Vibe Pulse tab and opens its own mood popup exactly as before. `npm run build` succeeds.
+
+**Result:** ✅ Working as expected. No regressions.
+
 ### Phase 9 — Deploy to Vercel (2026-07-06, in progress)
 
 **Pre-deploy checks done:** Ran `npm run build` — succeeds cleanly (`dist/index.html`,

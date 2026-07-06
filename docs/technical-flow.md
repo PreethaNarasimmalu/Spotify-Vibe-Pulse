@@ -50,19 +50,20 @@ spotify-vibe-pulse/
 
 ## Component responsibilities
 
-- **App.jsx** — owns active tab state, renders MainLayout (Sidebar + TopBar + page + Footer + PlayerBar), wraps in PlayerContext.Provider. Also owns the first-load forced onboarding flow (see below).
+- **App.jsx** — owns active tab state, renders MainLayout (Sidebar + TopBar + page + Footer + PlayerBar), wraps in PlayerContext.Provider. Also owns the first-load forced onboarding flow (see below), including its mood popup — onboarding never switches tabs, so the popup and its resulting recommendations are driven from here, not from `VibePulse.jsx`.
 - **PlayerContext** — single `<audio>` ref, survives tab switches. Exposes `{ currentTrack, isPlaying, play(track), togglePlay(), seek(), setVolume(), progress, duration }`. Track shape: `{ trackName, artistName, artworkUrl, previewUrl }`.
 - **PlayerBar** — pure consumer of PlayerContext; artwork/name/artist, play/pause, skip, progress (drag-to-seek within 30s clip), volume.
-- **Home.jsx** — on mount, fires 3 seed queries in parallel via itunes.js, renders sectioned card grids. Card click → `player.play(track)`.
-- **TasteAnchorsModal** — full-screen popup, 2-step chip-tap flow: pick up to 2 languages, then pick 3 artists from the union of those languages' curated pools. Both steps include an "Other" chip that reveals a text box for a custom language/artist name when the curated options don't fit; the typed value (not the word "Other") is what's stored. Writes `{languages, artists, updatedAt}` to `localStorage.tasteAnchors`. Used for the forced first-load onboarding, the contextual `TasteBanner` fallback, and the sidebar's "Preferences" trigger (all three open this same popup — there is no separate inline editor).
+- **Home.jsx** — on mount, fires 3 seed queries in parallel via itunes.js, renders sectioned card grids. Card click → `player.play(track)`. Also accepts a `vibe` prop ( `{ mood, suggestions, loading, error }` ) from `App.jsx`; when populated (only via the onboarding mood popup — see below), renders a `SuggestionList` ("For your '<mood>' mood") above the seed sections.
+- **TasteAnchorsModal** — full-screen popup, 2-step chip-tap flow: pick up to 2 languages, then pick 3 artists from the union of those languages' curated pools. Both steps include an "Other" chip that reveals a text box for a custom language/artist name when the curated options don't fit; the typed value (not the word "Other") is what's stored. Writes `{languages, artists, updatedAt}` to `localStorage.tasteAnchors`. Used for the forced first-load onboarding, the contextual `TasteBanner` fallback, and the sidebar's "Preferences" trigger (all three open this same popup — there is no separate inline editor). Completing or closing it during onboarding never switches tabs — it always chains into the onboarding `MoodCloud`, rendered by `App.jsx` itself, wherever the user currently is (in practice, still Home).
 - **Sidebar** — nav + a collapsible, independently-scrollable "Your Library" panel: **Artists** (lists the user's taste-anchor artists, always shown) and a **Preferences** pill that opens `TasteAnchorsModal`.
-- **VibePulse.jsx** — daily-cap check → `MoodCloud` (scattered layout; tapping a mood highlights it but only fires the query once the "Set" button inside the modal is clicked) → groq.js call (discovery mode, requests 16 candidates) → `Promise.all(itunes.searchByArtistTrack)` → first 10 resolved matches → `SuggestionList` (row layout, not cards) with thumbs shown only for the currently-loaded track. The global round `FloatingVibeButton` (bottom-right, visible on every tab) reopens the mood cloud, independent of daily cap. `NoNewSongsButton` (also always visible) skips the mood cloud entirely and fires a Groq call in familiar mode, favoring the user's real listening history over the static onboarding artist list. `tasteAnchors` is received as a prop from `App.jsx` (not read independently) so editing Preferences from the sidebar — without switching tabs — re-triggers the active mood query automatically. Dismissing the mood picker without ever picking a mood calls `onGoHome` instead of leaving this tab in its empty state. Accepts `autoOpenMoodPicker`/`onAutoOpenHandled`/`tasteAnchors`/`onGoHome` props so `App.jsx` can drive it.
+- **VibePulse.jsx** — the *dedicated* mood-management page, reached only by explicit navigation (sidebar nav item, or the global floating vibe button) — never as a side effect of onboarding. Daily-cap check → `MoodCloud` (scattered layout; tapping a mood highlights it but only fires the query once the "Set" button inside the modal is clicked) → `lib/vibeQuery.fetchVibeSuggestions` (Groq discovery-mode call requesting 16 candidates → `Promise.all(itunes.searchByArtistTrack)` → first 10 resolved matches) → `SuggestionList` (row layout, not cards) with thumbs shown only for the currently-loaded track. The global round `FloatingVibeButton` (bottom-right, visible on every tab) explicitly switches to this tab and reopens the mood cloud, independent of daily cap. `NoNewSongsButton` (also always visible) skips the mood cloud entirely and fires a Groq call in familiar mode, favoring the user's real listening history over the static onboarding artist list. `tasteAnchors` is received as a prop from `App.jsx` (not read independently) so editing Preferences from the sidebar — without switching tabs — re-triggers the active mood query automatically. Dismissing the mood picker without ever picking a mood calls `onGoHome` instead of leaving this tab in its empty state. Accepts `autoOpenMoodPicker`/`onAutoOpenHandled`/`tasteAnchors`/`onGoHome` props so `App.jsx` can drive it.
+- **lib/vibeQuery.js** — `fetchVibeSuggestions(tasteAnchors, mood, mode, recentlyPlayed)`: the shared Groq→iTunes pipeline (request → resolve → filter → slice to 10), used by both `App.jsx` (onboarding popup) and `VibePulse.jsx` (its own mood cycling) so the two call sites can't drift out of sync.
 
 ## State management
 
 - No Redux/Zustand. React Context only for the player (the one cross-cutting piece of state).
-- `useLocalStorage(key, defaultValue)` hook backs `tasteAnchors`, `vibePulseFeedback`, `dailyVibePrompt`, `onboardingSeen`, `profileName` — all owned at the `AppShell` level (not re-read independently by child pages) so every consumer sees the same live value.
-- `AppShell` also holds transient (non-persisted) component state for the onboarding chain: `isOnboardingFlow` (is the currently-open taste modal the forced first-load one, vs. banner/manual/Preferences) and `pendingMoodPicker` (one-shot signal telling `VibePulse` to auto-open its mood picker, also reused by the global floating vibe button).
+- `useLocalStorage(key, defaultValue)` hook backs `tasteAnchors`, `vibePulseFeedback`, `dailyVibePrompt`, `onboardingSeen`, `profileName` — all owned at the `AppShell` level (not re-read independently by child pages) so every consumer sees the same live value. (`dailyVibePrompt` is the one exception written from two places — `App.jsx`'s onboarding mood pick and `VibePulse.jsx`'s own prompts — but never read live by both at once, since `VibePulse` only mounts fresh when the user actually navigates there, by which point any onboarding-time write has already landed.)
+- `AppShell` also holds transient (non-persisted) component state for the onboarding chain: `isOnboardingFlow` (is the currently-open taste modal the forced first-load one, vs. banner/manual/Preferences), `showOnboardingMoodPopup` + `onboardingVibe` (the onboarding-only mood popup and its result, rendered/consumed entirely within `App.jsx`/`Home.jsx`), and `pendingMoodPicker` (one-shot signal telling `VibePulse` to auto-open its mood picker — only ever set by the global floating vibe button now, not onboarding).
 
 ## Data flow
 
@@ -74,14 +75,19 @@ Home card click --> PlayerContext.play(track)
 
 TasteAnchorsModal --(save, from onboarding/banner/sidebar Preferences)--> App.jsx setTasteAnchors(...)
    --> storage.js.set('tasteAnchors', {...}) + passed down as a live prop to VibePulse.jsx
-   (if a vibe is already active) --> VibePulse re-runs the current mood query against the new anchors
-   (first-load only) --> App.jsx navigates to Vibe Pulse + tells it to auto-open the mood picker
+   (if a vibe is already active on the Vibe Pulse tab) --> VibePulse re-runs its mood query against the new anchors
+   (first-load only, save OR close-without-finishing) --> App.jsx opens the onboarding MoodCloud
+   (no tab switch either way)
 
+Onboarding MoodCloud: mood tap --> App.jsx.handleOnboardingMoodPick(mood)
+   --> lib/vibeQuery.fetchVibeSuggestions(tasteAnchors, mood, 'discovery', recentlyPlayed)
+   --> setOnboardingVibe({mood, suggestions, ...}) --> passed to Home.jsx as `vibe` prop --> renders inline
+Onboarding MoodCloud: dismissed without picking --> just closes, no navigation (never left Home)
+
+Floating vibe button --(explicit)--> App.jsx setActiveTab('vibepulse') + pendingMoodPicker
 VibePulse: mood chip tap --> MoodCloud highlights it (no API call yet)
 VibePulse: "Set" button tap, or tasteAnchors prop changing while a mood is active -->
-   groq.js.getMoodRecommendations(tasteAnchors, mood) --> [{artist, track}] x16
-   --> Promise.all(itunes.js.searchByArtistTrack(artist, track, {country})) --> filter + take first 10
-   --> SuggestionList renders rows
+   lib/vibeQuery.fetchVibeSuggestions(...) --> SuggestionList renders rows
 VibePulse: mood picker dismissed with no mood ever picked --> onGoHome() --> App.jsx setActiveTab('home')
 
 SuggestionList row click --> PlayerContext.play(track)  (same shared player as Home)

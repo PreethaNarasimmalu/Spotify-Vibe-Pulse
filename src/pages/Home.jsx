@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { searchTracks } from '../api/itunes'
 import { usePlayer } from '../context/PlayerContext'
 import TrackCard from '../components/cards/TrackCard'
+import SuggestionList from '../components/vibePulse/SuggestionList'
 
 const SEED_SECTIONS = [
   { title: 'Top Hits 2026', query: 'top hits 2026' },
@@ -16,7 +17,7 @@ function getGreeting() {
   return 'Good evening'
 }
 
-export default function Home() {
+export default function Home({ vibe }) {
   const { play, currentTrack, isPlaying } = usePlayer()
   const [sections, setSections] = useState([])
   const [loading, setLoading] = useState(true)
@@ -64,6 +65,21 @@ export default function Home() {
   return (
     <div className="pt-4 flex flex-col gap-8">
       <h1 className="text-white text-3xl font-bold -mb-2">{getGreeting()}</h1>
+
+      {vibe?.loading && (
+        <p className="text-spotify-gray text-sm" data-testid="home-vibe-loading">
+          Finding tracks for your "{vibe.mood}" mood…
+        </p>
+      )}
+      {vibe?.error && (
+        <p className="text-red-400 text-sm" data-testid="home-vibe-error">
+          Couldn't get vibe suggestions: {vibe.error}
+        </p>
+      )}
+      {vibe?.suggestions?.length > 0 && (
+        <SuggestionList tracks={vibe.suggestions} heading={`For your "${vibe.mood}" mood`} />
+      )}
+
       {sections.map((section) => (
         <section key={section.title}>
           <h2 className="text-white text-2xl font-bold mb-4">{section.title}</h2>

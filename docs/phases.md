@@ -257,6 +257,18 @@ for 16 tracks per call instead of 10 (buffer against iTunes lookup misses), and 
 sliced to the first 10 resolved matches — previously a lookup-heavy round could visibly shrink to
 5 or 6 shown tracks. Mood popup copy changed from "vibe today" to "vibe now".
 
+## Follow-up — Onboarding stays on Home instead of forcing Vibe Pulse tab (2026-07-06)
+**Files:** `App.jsx`, `Home.jsx`, `VibePulse.jsx`, new `lib/vibeQuery.js`, `lib/date.js`.
+
+The onboarding mood popup moved out of `VibePulse.jsx` and into `App.jsx` itself, so picking a mood
+right after first-load preferences no longer force-switches to the Vibe Pulse tab — results render
+inline on Home via a new `vibe` prop instead. The Groq→iTunes pipeline was extracted into a shared
+`lib/vibeQuery.js` so `VibePulse.jsx` (which still owns its own full mood-cycling experience,
+unchanged) and this new onboarding path don't duplicate that logic. The floating vibe button still
+deliberately switches to the Vibe Pulse tab — that's an explicit "manage my vibe" action, not
+onboarding. (Also confirmed via testing that "the popup isn't appearing" on repeated live-site visits
+was expected one-shot-ever behavior, not a bug — needs a genuinely fresh `localStorage` to see again.)
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live
