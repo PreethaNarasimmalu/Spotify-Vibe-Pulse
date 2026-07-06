@@ -147,6 +147,9 @@ not change the request/response shape above.
 
 // key: "tasteBannerDismissedAt"
 { dismissedAt: ISOString }
+
+// key: "profileName" — cosmetic only, not real auth/identity
+string  // e.g. "Guest" (default) or whatever the user typed via ProfileBadge
 ```
 
 ## Build order

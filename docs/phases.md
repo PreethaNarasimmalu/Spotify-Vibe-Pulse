@@ -45,6 +45,12 @@ banner once `playCount >= 3` and `tasteAnchors` is unset; Sidebar's "Update your
 same modal on demand any time.
 **API calls:** none.
 
+**Follow-up (2026-07-06):** Languages narrowed to English/Tamil/Hindi/Telugu/Malayalam + an
+"Other" chip that reveals a free-text input (the one deliberate exception to "chips, not text
+inputs" — no way to pre-curate arbitrary languages). Custom languages fall back to a generic
+artist pool. Added a curated Malayalam pool and corrected Sai Abhyankkar's placement (Tamil, not
+Telugu — he's Chennai-born and described as India's first Tamil pop star).
+
 ## Phase 5 — Vibe Pulse tab (mood cloud → Groq → iTunes → suggestion cards) ✅
 **Files:** `src/api/groq.js`, `src/components/vibePulse/MoodCloud.jsx`,
 `src/components/vibePulse/SuggestionGrid.jsx`, `src/pages/VibePulse.jsx`.
@@ -77,7 +83,18 @@ It sticks with whichever key last succeeded for subsequent calls rather than rou
 every request. This is a resilience measure only — it does not change the request/response shape
 above.
 
-**API calls per mood tap:** 1 Groq (LLM) + ≤6 iTunes (non-LLM).
+**API calls per mood tap:** 1 Groq (LLM) + ≤10 iTunes (non-LLM).
+
+**Follow-up (2026-07-06) — recommendation-quality fix:** User reported (on the live deploy) that
+picking Tamil still surfaced a Telugu-sounding track, and only 1 of 6 suggestions resolved to a
+playable result. Fixed: `getMoodRecommendations` now requests 10 tracks (not 6) with system
+prompts rewritten to state the taste anchors are "hard constraints, not vague hints"; `searchByArtistTrack`
+now fetches `limit=5` (not 1) and prefers a result whose artist name actually matches the requested
+one, and accepts a `country` param — `VibePulse.jsx` derives this from `tasteAnchors.language`
+(`IN` for the four Indian languages) so regional-language searches hit the Indian iTunes storefront
+instead of the thin-coverage US default. Verified via mocked Playwright tests that the right
+params/prompt wording go out; actual live recommendation quality needs re-confirmation by the user
+on the deployment, since this sandbox can't reach the real APIs.
 
 ## Phase 6 — Thumbs up/down + manual "change my vibe" button ✅
 **Files:** `src/components/vibePulse/ChangeVibeButton.jsx`, updated
@@ -113,6 +130,15 @@ No new architecture — replaced emoji-based playback controls with proper SVG i
 Spotify's icon language, replaced the native volume `<input type=range>` with a custom slider
 matching the existing progress bar, fixed the track-card play/pause overlay to stay visible while
 that track is playing (not just on hover), and added a time-of-day Home greeting. No API calls.
+
+## Follow-up — Mood picker modal + profile name (2026-07-06)
+User feedback: the mood picker wasn't noticeable inline in the page, and the two Vibe Pulse buttons
+weren't clear. `MoodCloud.jsx` now renders as a centered modal overlay (dark backdrop, same visual
+pattern as `TasteAnchorsModal`) instead of an inline card; `ChangeVibeButton` got a visible
+"Change my vibe" text label matching `NoNewSongsButton`'s existing style. Also added
+`ProfileBadge.jsx` — a lightweight, non-auth display name/avatar (defaults to "Guest",
+`localStorage.profileName`, click-to-edit) in the top-right of `TopBar`, mirroring where Spotify
+shows the account avatar.
 
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or

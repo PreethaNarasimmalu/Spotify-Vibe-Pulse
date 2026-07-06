@@ -3,6 +3,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../lib/storage'
 import { getMoodRecommendations } from '../api/groq'
 import { searchByArtistTrack } from '../api/itunes'
+import { COUNTRY_BY_LANGUAGE } from '../components/tasteAnchors/TasteAnchorsModal'
 import MoodCloud from '../components/vibePulse/MoodCloud'
 import SuggestionGrid from '../components/vibePulse/SuggestionGrid'
 import ChangeVibeButton from '../components/vibePulse/ChangeVibeButton'
@@ -36,7 +37,10 @@ export default function VibePulse() {
     setSuggestions([])
     try {
       const tracks = await getMoodRecommendations(tasteAnchors, mood, queryMode)
-      const resolved = await Promise.all(tracks.map((t) => searchByArtistTrack(t.artist, t.track)))
+      const country = COUNTRY_BY_LANGUAGE[tasteAnchors?.language]
+      const resolved = await Promise.all(
+        tracks.map((t) => searchByArtistTrack(t.artist, t.track, { country })),
+      )
       setSuggestions(resolved.filter(Boolean))
     } catch (err) {
       setError(err.message)

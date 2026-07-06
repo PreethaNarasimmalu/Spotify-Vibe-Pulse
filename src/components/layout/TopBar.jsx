@@ -1,3 +1,5 @@
+import ProfileBadge from './ProfileBadge'
+
 const TAB_TITLES = {
   home: 'Home',
   search: 'Search',
@@ -25,6 +27,8 @@ export default function TopBar({ activeTab }) {
         </button>
         <h1 className="text-white font-bold text-lg">{TAB_TITLES[activeTab] ?? ''}</h1>
       </div>
+
+      <ProfileBadge />
     </header>
   )
 }
