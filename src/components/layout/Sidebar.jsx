@@ -1,9 +1,14 @@
+import { useState } from 'react'
+import InlinePreferencesEditor from '../tasteAnchors/InlinePreferencesEditor'
+
 const NAV_ITEMS = [
   { id: 'home', label: 'Home', icon: HomeIcon },
   { id: 'search', label: 'Search', icon: SearchIcon },
   { id: 'library', label: 'Your Library', icon: LibraryIcon },
   { id: 'vibepulse', label: 'Vibe Pulse', icon: PulseIcon },
 ]
+
+const LIBRARY_TABS = ['Artists', 'Preferences']
 
 function HomeIcon({ active }) {
   return (
@@ -40,10 +45,32 @@ function PulseIcon({ active }) {
   )
 }
 
-export default function Sidebar({ activeTab, onSelectTab, onOpenTasteAnchors }) {
+function CollapseIcon({ collapsed }) {
   return (
-    <aside className="w-60 shrink-0 h-full bg-black flex flex-col gap-2 p-2">
-      <div className="bg-spotify-card rounded-lg p-4">
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ transform: collapsed ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+    >
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  )
+}
+
+export default function Sidebar({ activeTab, onSelectTab, tasteAnchors, onSaveTasteAnchors }) {
+  const [collapsed, setCollapsed] = useState(false)
+  const [libraryTab, setLibraryTab] = useState('Artists')
+  const artists = tasteAnchors?.artists ?? []
+
+  return (
+    <aside className="w-60 shrink-0 h-full bg-black flex flex-col gap-2 p-2 min-h-0">
+      <div className="bg-spotify-card rounded-lg p-4 shrink-0">
         <div className="flex items-center gap-2 px-1 mb-4">
           <svg viewBox="0 0 24 24" width="32" height="32" fill="#1ed760">
             <circle cx="12" cy="12" r="12" />
@@ -74,21 +101,63 @@ export default function Sidebar({ activeTab, onSelectTab, onOpenTasteAnchors }) 
         </nav>
       </div>
 
-      <div className="bg-spotify-card rounded-lg p-4">
-        <button
-          type="button"
-          onClick={onOpenTasteAnchors}
-          className="flex items-center gap-3 text-left text-sm font-bold text-spotify-gray hover:text-white transition-colors cursor-pointer w-full"
-        >
-          <span className="w-8 h-8 shrink-0 rounded-full bg-black/40 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18V5l12-2v13" />
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="16" r="3" />
-            </svg>
-          </span>
-          Update your taste
-        </button>
+      <div className="bg-spotify-card rounded-lg flex-1 flex flex-col min-h-0">
+        <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
+          <h2 className="text-white font-bold text-sm">Your Library</h2>
+          <button
+            type="button"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? 'Expand library' : 'Collapse library'}
+            data-testid="library-collapse-toggle"
+            className="text-spotify-gray hover:text-white cursor-pointer"
+          >
+            <CollapseIcon collapsed={collapsed} />
+          </button>
+        </div>
+
+        {!collapsed && (
+          <>
+            <div className="flex gap-2 px-4 pb-2 shrink-0">
+              {LIBRARY_TABS.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setLibraryTab(tab)}
+                  data-testid={`library-tab-${tab.toLowerCase()}`}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-full cursor-pointer transition-colors ${
+                    libraryTab === tab ? 'bg-white text-black' : 'bg-black/40 text-white hover:bg-black/60'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto" data-testid="library-scroll-area">
+              {libraryTab === 'Artists' &&
+                (artists.length === 0 ? (
+                  <p className="text-spotify-gray text-xs p-4">No artists yet — open Preferences to set your taste.</p>
+                ) : (
+                  <div className="flex flex-col p-2">
+                    {artists.map((artist) => (
+                      <div key={artist} className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-white/5 cursor-pointer">
+                        <span className="w-10 h-10 shrink-0 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+                          {artist.charAt(0)}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-white text-sm font-medium truncate">{artist}</p>
+                          <p className="text-spotify-gray text-xs">Artist</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              {libraryTab === 'Preferences' && (
+                <InlinePreferencesEditor tasteAnchors={tasteAnchors} onSave={onSaveTasteAnchors} />
+              )}
+            </div>
+          </>
+        )}
       </div>
     </aside>
   )

@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const MOODS = ['chill', 'hyped', 'focused', 'heartbroken', 'nostalgic', 'romantic', 'energetic', 'melancholy']
 
 function pseudoRandom(seed) {
@@ -6,6 +8,8 @@ function pseudoRandom(seed) {
 }
 
 export default function MoodCloud({ onSelectMood, onDismiss, dismissible = true }) {
+  const [selected, setSelected] = useState(null)
+
   return (
     <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
@@ -33,14 +37,18 @@ export default function MoodCloud({ onSelectMood, onDismiss, dismissible = true 
             const rotate = (pseudoRandom(i + 1) - 0.5) * 16
             const translateY = (pseudoRandom(i + 50) - 0.5) * 24
             const sizeClass = i % 3 === 0 ? 'text-2xl' : i % 3 === 1 ? 'text-lg' : 'text-xl'
+            const isSelected = selected === mood
             return (
               <button
                 key={mood}
                 type="button"
                 data-testid="mood-chip"
-                onClick={() => onSelectMood(mood)}
+                data-selected={isSelected}
+                onClick={() => setSelected(mood)}
                 style={{ transform: `rotate(${rotate}deg) translateY(${translateY}px)` }}
-                className={`${sizeClass} font-bold px-5 py-2 rounded-full bg-black/40 hover:bg-spotify-green hover:text-black text-white transition-colors cursor-pointer`}
+                className={`${sizeClass} font-bold px-5 py-2 rounded-full transition-colors cursor-pointer ${
+                  isSelected ? 'bg-spotify-green text-black' : 'bg-black/40 hover:bg-spotify-green hover:text-black text-white'
+                }`}
               >
                 {mood}
               </button>
@@ -48,6 +56,20 @@ export default function MoodCloud({ onSelectMood, onDismiss, dismissible = true 
           })}
         </div>
       </div>
+
+      {selected && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onSelectMood(selected)
+          }}
+          data-testid="set-vibe-button"
+          className="fixed bottom-28 right-6 bg-spotify-green text-black font-bold px-8 py-3 rounded-full shadow-2xl cursor-pointer hover:scale-105 transition-transform z-50"
+        >
+          Set
+        </button>
+      )}
     </div>
   )
 }

@@ -3,24 +3,24 @@ const MODEL = 'llama-3.3-70b-versatile'
 
 const DISCOVERY_SYSTEM_PROMPT =
   'You are a music recommendation engine for a Spotify-like app. The listener\'s taste anchors ' +
-  '(preferred language, favorite artists) are hard constraints, not vague hints: every track you ' +
-  'return must either be BY one of the listed favorite artists, or by a different artist who sings ' +
-  'in the listener\'s preferred language and shares a similar genre/style. Given the listener\'s ' +
-  'current mood word, return exactly 10 track recommendations that genuinely fit that mood, as ' +
-  'strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. Favor a mix ' +
-  'of well-known and lesser-known tracks, not just top-40 picks — but never ignore the listener\'s ' +
-  'language or artists to do so.'
+  '(1-2 preferred languages, favorite artists) are hard constraints, not vague hints: every track ' +
+  'you return must either be BY one of the listed favorite artists, or by a different artist who ' +
+  'sings in one of the listener\'s preferred languages and shares a similar genre/style. Given the ' +
+  'listener\'s current mood word, return exactly 10 track recommendations that genuinely fit that ' +
+  'mood, as strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. ' +
+  'Favor a mix of well-known and lesser-known tracks, not just top-40 picks — but never ignore the ' +
+  'listener\'s languages or artists to do so.'
 
 // Used by the "No new songs" button — the inverse of the discovery prompt: the
 // listener explicitly wants familiar comfort listening, not discovery.
 const FAMILIAR_SYSTEM_PROMPT =
   'You are a music recommendation engine for a Spotify-like app. The listener\'s taste anchors ' +
-  '(preferred language, favorite artists) are hard constraints. The listener wants familiar ' +
+  '(1-2 preferred languages, favorite artists) are hard constraints. The listener wants familiar ' +
   'comfort listening, not discovery: return exactly 10 well-known, popular track recommendations ' +
-  'specifically BY the artists they listed, in their preferred language, as strict JSON: ' +
+  'specifically BY the artists they listed, in their preferred languages, as strict JSON: ' +
   '{"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. Do not suggest obscure ' +
   'or new artists — only the listener\'s own chosen artists, or extremely similar established ' +
-  'names in the same language.'
+  'names in the same languages.'
 
 function loadApiKeys() {
   const multi = import.meta.env.VITE_GROQ_API_KEYS

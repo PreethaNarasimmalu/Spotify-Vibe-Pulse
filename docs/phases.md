@@ -152,6 +152,35 @@ explicit instruction. Library rows, Premium upsell, and notification icons were 
 added — real Spotify features never in this app's scope, and non-functional decorative buttons for
 them would be dead UI.
 
+## Follow-up — Onboarding redesign, multi-language, list view, sidebar/footer (2026-07-06)
+**Files:** `src/lib/tasteData.js` (new, shared), `src/components/tasteAnchors/InlinePreferencesEditor.jsx`
+(new), `src/components/vibePulse/SuggestionList.jsx` (new, replaces `SuggestionGrid.jsx`),
+`src/components/layout/Footer.jsx` (new), updated `App.jsx`, `TasteAnchorsModal.jsx`,
+`MoodCloud.jsx`, `Sidebar.jsx`, `MainLayout.jsx`, `groq.js`, `VibePulse.jsx`.
+
+A large follow-up batch from two more rounds of user feedback (real Spotify screenshots + a
+detailed description of a reworked onboarding/Vibe Pulse flow):
+1. **Onboarding reversed**: forced first-load Taste Anchors popup (tracked via a new
+   `localStorage.onboardingSeen`, separate from `tasteAnchors`, so it only ever forces once), with
+   the existing contextual banner kept as a fallback if closed without finishing.
+2. **Multi-language**: taste anchors now support up to 2 languages (`MAX_LANGUAGES` in the new
+   `lib/tasteData.js`), with the artist step showing the deduped union of both languages' pools.
+3. **Onboarding → mood picker chain**: completing the *forced* onboarding (not later
+   Preferences edits) auto-navigates to Vibe Pulse and auto-opens the mood picker.
+4. **Deferred mood confirmation**: tapping a mood chip only highlights it now; a floating "Set"
+   button (bottom-right, above the player bar) confirms and fires the actual Groq call.
+5. **List view everywhere in Vibe Pulse**: `SuggestionList` (row layout) replaces the card grid
+   for all Vibe Pulse result displays — Home's card grid is untouched, this was scoped specifically
+   to Vibe Pulse's individual-track recommendations.
+6. **Sidebar rebuilt**: collapsible, independently-scrollable "Your Library" panel with Artists
+   (reads real `tasteAnchors.artists`) and Preferences (new compact inline editor, not a reuse of
+   the popup modal — the user explicitly chose a separate implementation) tabs.
+7. **Footer added**: Spotify-style footer (Company/Communities/Useful links/Spotify Plans, social
+   icons, legal row) on every page, matching the screenshots.
+
+See `docs/status.md` for the three clarifying questions asked before implementing and the full
+verification log (14+ checks against real mocked Groq/iTunes/DOM state, all passing).
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live

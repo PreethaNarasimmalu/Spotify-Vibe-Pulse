@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../lib/storage'
 import { getMoodRecommendations } from '../api/groq'
 import { searchByArtistTrack } from '../api/itunes'
-import { COUNTRY_BY_LANGUAGE } from '../components/tasteAnchors/TasteAnchorsModal'
+import { countryForLanguages } from '../lib/tasteData'
 import MoodCloud from '../components/vibePulse/MoodCloud'
-import SuggestionGrid from '../components/vibePulse/SuggestionGrid'
+import SuggestionList from '../components/vibePulse/SuggestionList'
 import ChangeVibeButton from '../components/vibePulse/ChangeVibeButton'
 import NoNewSongsButton from '../components/vibePulse/NoNewSongsButton'
 
@@ -13,7 +13,7 @@ function todayString() {
   return new Date().toISOString().slice(0, 10)
 }
 
-export default function VibePulse() {
+export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandled }) {
   const [tasteAnchors] = useLocalStorage(STORAGE_KEYS.TASTE_ANCHORS, null)
   const [dailyPrompt, setDailyPrompt] = useLocalStorage(STORAGE_KEYS.DAILY_VIBE_PROMPT, {
     lastShownDate: null,
@@ -29,6 +29,14 @@ export default function VibePulse() {
   const today = todayString()
   const showDailyPrompt = dailyPrompt.lastShownDate !== today
 
+  useEffect(() => {
+    if (autoOpenMoodPicker) {
+      setManualPromptOpen(true)
+      onAutoOpenHandled?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenMoodPicker])
+
   const runMoodQuery = async (mood, queryMode = 'discovery') => {
     setSelectedMood(mood)
     setMode(queryMode)
@@ -37,7 +45,7 @@ export default function VibePulse() {
     setSuggestions([])
     try {
       const tracks = await getMoodRecommendations(tasteAnchors, mood, queryMode)
-      const country = COUNTRY_BY_LANGUAGE[tasteAnchors?.language]
+      const country = countryForLanguages(tasteAnchors?.languages)
       const resolved = await Promise.all(
         tracks.map((t) => searchByArtistTrack(t.artist, t.track, { country })),
       )
@@ -103,7 +111,7 @@ export default function VibePulse() {
         </p>
       )}
 
-      {suggestions.length > 0 && <SuggestionGrid tracks={suggestions} heading={heading} />}
+      {suggestions.length > 0 && <SuggestionList tracks={suggestions} heading={heading} />}
     </div>
   )
 }

@@ -1,61 +1,38 @@
 import { useState } from 'react'
 import ChipGroup from './ChipGroup'
-
-export const LANGUAGES = ['English', 'Tamil', 'Hindi', 'Telugu', 'Malayalam']
-const OTHER = 'Other'
-
-// Curated per-language pools reflecting current (2026) trending/Gen-Z-relevant artists,
-// not just generic all-time favorites — see docs/status.md for the research behind these.
-export const ARTISTS_BY_LANGUAGE = {
-  English: ['Drake', 'Taylor Swift', 'Bad Bunny', 'Bruno Mars', 'The Weeknd', 'Justin Bieber'],
-  Tamil: ['Sai Abhyankkar', 'Anirudh Ravichander', 'Sid Sriram', 'A.R. Rahman', 'Ilaiyaraaja'],
-  Hindi: ['Akasa', 'Arijit Singh', 'Pritam', 'Shreya Ghoshal', 'Neha Kakkar', 'Sonu Nigam'],
-  Telugu: ['Thaman S', 'Devi Sri Prasad', 'Sid Sriram', 'A.R. Rahman'],
-  Malayalam: ['Sithara Krishnakumar', 'Vijay Yesudas', 'Haricharan', 'Sooraj Santhosh', 'Vineeth Sreenivasan'],
-}
-
-// Fallback pool when the listener types a custom ("Other") language we have no curated list for.
-const DEFAULT_ARTIST_POOL = ['Drake', 'Taylor Swift', 'Bad Bunny', 'The Weeknd', 'Ed Sheeran', 'Dua Lipa']
-
-// iTunes storefront to search for a given language — the default US catalog has
-// thin coverage for regional-language tracks, so Indian languages route to the
-// Indian storefront instead. Unmapped/custom languages fall through to no
-// override (iTunes defaults to the US storefront).
-export const COUNTRY_BY_LANGUAGE = {
-  Tamil: 'IN',
-  Hindi: 'IN',
-  Telugu: 'IN',
-  Malayalam: 'IN',
-}
+import { LANGUAGES, OTHER_LANGUAGE, MAX_LANGUAGES, artistPoolForLanguages } from '../../lib/tasteData'
 
 export default function TasteAnchorsModal({ onClose, onSave, initial }) {
   const [stepIndex, setStepIndex] = useState(0)
-  const knownLanguage = initial?.language && LANGUAGES.includes(initial.language) ? initial.language : null
-  const [language, setLanguage] = useState(knownLanguage)
-  const [showCustomInput, setShowCustomInput] = useState(Boolean(initial?.language && !knownLanguage))
-  const [customLanguage, setCustomLanguage] = useState(initial?.language && !knownLanguage ? initial.language : '')
+  const initialLanguages = initial?.languages ?? []
+  const initialKnown = initialLanguages.filter((l) => LANGUAGES.includes(l))
+  const initialCustom = initialLanguages.find((l) => !LANGUAGES.includes(l)) ?? ''
+
+  const [selectedChips, setSelectedChips] = useState(() =>
+    initialCustom ? [...initialKnown, OTHER_LANGUAGE] : initialKnown,
+  )
+  const [customLanguage, setCustomLanguage] = useState(initialCustom)
   const [artists, setArtists] = useState(initial?.artists ?? [])
 
   const isLanguageStep = stepIndex === 0
   const isLastStep = stepIndex === 1
-  const effectiveLanguage = showCustomInput ? customLanguage.trim() : language
-  const artistOptions = showCustomInput
-    ? DEFAULT_ARTIST_POOL
-    : language
-      ? (ARTISTS_BY_LANGUAGE[language] ?? DEFAULT_ARTIST_POOL)
-      : []
-  const isComplete = isLanguageStep ? Boolean(effectiveLanguage) : artists.length === 3
+  const hasOther = selectedChips.includes(OTHER_LANGUAGE)
+  const effectiveLanguages = selectedChips
+    .map((c) => (c === OTHER_LANGUAGE ? customLanguage.trim() : c))
+    .filter(Boolean)
+  const artistOptions = artistPoolForLanguages(effectiveLanguages)
+  const isComplete = isLanguageStep ? effectiveLanguages.length > 0 : artists.length === 3
 
-  const toggleLanguage = (option) => {
+  const toggleLanguageChip = (option) => {
     setArtists([])
-    if (option === OTHER) {
-      setShowCustomInput(true)
-      setLanguage(null)
-      return
-    }
-    setShowCustomInput(false)
-    setCustomLanguage('')
-    setLanguage((prev) => (prev === option ? null : option))
+    setSelectedChips((prev) => {
+      if (prev.includes(option)) {
+        if (option === OTHER_LANGUAGE) setCustomLanguage('')
+        return prev.filter((o) => o !== option)
+      }
+      if (prev.length >= MAX_LANGUAGES) return prev
+      return [...prev, option]
+    })
   }
 
   const toggleArtist = (option) => {
@@ -67,7 +44,7 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
   const handleNext = () => {
     if (!isComplete) return
     if (isLastStep) {
-      onSave({ language: effectiveLanguage, artists, updatedAt: new Date().toISOString() })
+      onSave({ languages: effectiveLanguages, artists, updatedAt: new Date().toISOString() })
     } else {
       setStepIndex(1)
     }
@@ -89,14 +66,14 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
 
         {isLanguageStep ? (
           <>
-            <h2 className="text-white text-xl font-bold mb-4">Which language do you listen to most?</h2>
+            <h2 className="text-white text-xl font-bold mb-4">Which language(s) do you listen to most? (up to 2)</h2>
             <ChipGroup
-              options={[...LANGUAGES, OTHER]}
-              selected={showCustomInput ? [OTHER] : language ? [language] : []}
-              max={1}
-              onToggle={toggleLanguage}
+              options={[...LANGUAGES, OTHER_LANGUAGE]}
+              selected={selectedChips}
+              max={MAX_LANGUAGES}
+              onToggle={toggleLanguageChip}
             />
-            {showCustomInput && (
+            {hasOther && (
               <input
                 type="text"
                 value={customLanguage}
@@ -110,7 +87,7 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
           </>
         ) : (
           <>
-            <h2 className="text-white text-xl font-bold mb-4">Pick 3 {effectiveLanguage} artists you like</h2>
+            <h2 className="text-white text-xl font-bold mb-4">Pick 3 artists you like</h2>
             <ChipGroup options={artistOptions} selected={artists} max={3} onToggle={toggleArtist} />
           </>
         )}

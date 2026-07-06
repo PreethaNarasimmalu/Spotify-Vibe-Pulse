@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   DAILY_VIBE_PROMPT: 'dailyVibePrompt',
   TASTE_BANNER_DISMISSED: 'tasteBannerDismissedAt',
   PROFILE_NAME: 'profileName',
+  ONBOARDING_SEEN: 'onboardingSeen',
 }
 
 export function readStorage(key, fallback) {
