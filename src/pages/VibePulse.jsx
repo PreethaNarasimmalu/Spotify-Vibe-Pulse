@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from '../lib/storage'
 import { getMoodRecommendations } from '../api/groq'
 import { searchByArtistTrack } from '../api/itunes'
 import { countryForLanguages } from '../lib/tasteData'
+import { getListeningHistory } from '../lib/listeningHistory'
 import MoodCloud from '../components/vibePulse/MoodCloud'
 import SuggestionList from '../components/vibePulse/SuggestionList'
 import ChangeVibeButton from '../components/vibePulse/ChangeVibeButton'
@@ -44,7 +45,7 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
     setError(null)
     setSuggestions([])
     try {
-      const tracks = await getMoodRecommendations(tasteAnchors, mood, queryMode)
+      const tracks = await getMoodRecommendations(tasteAnchors, mood, queryMode, getListeningHistory())
       const country = countryForLanguages(tasteAnchors?.languages)
       const resolved = await Promise.all(
         tracks.map((t) => searchByArtistTrack(t.artist, t.track, { country })),
@@ -81,11 +82,15 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
     if (showDailyPrompt) setDailyPrompt({ lastShownDate: today, lastResponse: 'dismissed' })
   }
 
+  // Reuses whatever vibe was last set (or a neutral default if none picked
+  // yet this session) so "no new songs" stays relevant to the mood the user
+  // is actually in, instead of ignoring it and giving generic favorites.
   const handleNoNewSongs = () => {
-    runMoodQuery('familiar', 'familiar')
+    runMoodQuery(selectedMood ?? 'chill', 'familiar')
   }
 
-  const heading = mode === 'familiar' ? 'Your familiar favorites' : `For your "${selectedMood}" mood`
+  const heading =
+    mode === 'familiar' ? `Familiar favorites for your "${selectedMood}" mood` : `For your "${selectedMood}" mood`
 
   return (
     <div className="pt-4">

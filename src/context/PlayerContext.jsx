@@ -1,4 +1,5 @@
 import { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react'
+import { recordPlayed } from '../lib/listeningHistory'
 
 const PlayerContext = createContext(null)
 
@@ -40,6 +41,7 @@ export function PlayerProvider({ children }) {
     audio.currentTime = 0
     audio.play()
     setIsPlaying(true)
+    recordPlayed(track)
     currentTrackRef.current = track
     setCurrentTrack(track)
   }, [])

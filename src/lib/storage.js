@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   TASTE_BANNER_DISMISSED: 'tasteBannerDismissedAt',
   PROFILE_NAME: 'profileName',
   ONBOARDING_SEEN: 'onboardingSeen',
+  LISTENING_HISTORY: 'listeningHistory',
 }
 
 export function readStorage(key, fallback) {

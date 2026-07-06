@@ -55,21 +55,20 @@ export default function MoodCloud({ onSelectMood, onDismiss, dismissible = true 
             )
           })}
         </div>
-      </div>
 
-      {selected && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onSelectMood(selected)
-          }}
-          data-testid="set-vibe-button"
-          className="fixed bottom-28 right-6 bg-spotify-green text-black font-bold px-8 py-3 rounded-full shadow-2xl cursor-pointer hover:scale-105 transition-transform z-50"
-        >
-          Set
-        </button>
-      )}
+        {selected && (
+          <div className="flex justify-center mt-8">
+            <button
+              type="button"
+              onClick={() => onSelectMood(selected)}
+              data-testid="set-vibe-button"
+              className="bg-spotify-green text-black font-bold px-10 py-3 rounded-full shadow-lg cursor-pointer hover:scale-105 transition-transform"
+            >
+              Set
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -197,6 +197,22 @@ screenshot. Fixed a real bug found while testing: dismissing the onboarding-auto
 immediately revealed a second, separate daily-prompt mood cloud stacked behind it — fixed by having
 the manual picker's handlers also resolve the daily prompt state.
 
+## Follow-up — Set button placement + real listening history (2026-07-06)
+**Files:** `src/lib/listeningHistory.js` (new), updated `MoodCloud.jsx`, `PlayerContext.jsx`,
+`groq.js`, `VibePulse.jsx`.
+
+Moved the "Set" confirm button from a detached viewport-corner floating element into the mood-cloud
+modal itself (rendered below the chips, confirmed a true DOM child of the dialog) — the separate
+persistent "Set your vibe" global trigger button is unchanged. Re-verified (not re-built) that
+first-load onboarding genuinely works from a fresh browser context — it's designed to fire once per
+browser, so a session that already completed it correctly doesn't show it again. Added real
+listening history: `PlayerContext.play()` records every genuinely-new track played to
+`localStorage.listeningHistory` (capped, deduped); `getMoodRecommendations` now takes a
+`recentlyPlayed` param included in the Groq prompt, with familiar-mode instructed to favor real
+recent listening over the static onboarding list. Fixed `handleNoNewSongs` to reuse the
+last-selected mood instead of a hardcoded placeholder, so "no new songs" stays relevant to the
+vibe the user actually set.
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live

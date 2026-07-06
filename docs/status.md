@@ -419,6 +419,54 @@ daily cap on the manual path; dismissing the onboarding mood cloud now closes it
 
 **Result:** ✅ Working as expected, including the fixed double-modal bug. No regressions.
 
+### Follow-up — Set button placement, onboarding re-verification, listening history (2026-07-06)
+
+**What was reported:** (1) the "Set" confirm button was still a separate viewport-corner floating
+element, not attached below the mood chips inside the modal as the user's screenshot showed; (2)
+the user believed the first-load onboarding popup "still wasn't being done"; (3) "No new songs"
+should factor in the user's real listening history and stay relevant to whatever vibe/mood they
+last set, instead of blindly returning generic favorites.
+
+**Set button:** Moved out of the separate `fixed bottom-28 right-6` viewport-corner button and into
+the modal card itself, rendered directly below the mood chips (centered, normal document flow) —
+confirmed via a DOM containment check (`modal.contains(setButton)` → `true`) that it's now a true
+child of the dialog, not a detached floating element. The separate persistent global
+"Set your vibe" trigger button (bottom-left, opens the mood picker from anywhere) is unchanged —
+that one is intentionally floating/global by design, distinct from this in-modal confirm button.
+
+**Onboarding re-verified, not re-implemented:** re-tested from a genuinely fresh browser context
+(no prior localStorage) and confirmed the popup does force-open correctly — this was already
+working from the previous batch. The most likely explanation for the user seeing otherwise: it is
+designed to fire only once per browser (tracked by `onboardingSeen`), so a browser/tab that had
+already completed it in an earlier round of testing correctly does not show it again on reload —
+that's the intended "returning user" behavior, not a bug. Communicated this plainly along with how
+to re-test it (clear site data / use a private window) rather than silently assuming it was broken.
+
+**Listening history:** added `lib/listeningHistory.js` — `recordPlayed(track)` (called from
+`PlayerContext.play()` every time a genuinely new track starts) appends `{artist, track}` to
+`localStorage.listeningHistory`, deduped, capped at the last 20. `getMoodRecommendations` now
+accepts a `recentlyPlayed` array, included in the Groq user message; both system prompts updated —
+discovery mode is told to avoid re-recommending recently-played tracks, familiar mode is told to
+heavily favor artists from real recent listening history over the static onboarding-time list,
+since that better reflects current taste. Also fixed a real relevance bug in `handleNoNewSongs`: it
+was hardcoding the mood string to `'familiar'` instead of reusing whatever mood the user had
+actually last set, so "no new songs" results ignored the current vibe entirely — now reuses
+`selectedMood` (falling back to a neutral default only if no mood has been picked yet this
+session), and the results heading now reads "Familiar favorites for your '{mood}' mood" instead of
+a generic "Your familiar favorites", tying it back to the vibe explicitly.
+
+**How it was tested:** Ran `npm run dev` with the usual Groq/iTunes mocks, starting from a
+completely fresh page load (no pre-seeded localStorage) for the onboarding check specifically.
+Verified: (1) the onboarding modal genuinely shows on a fresh session; (2) the Set button is a DOM
+child of the modal card; (3) after picking "chill" and playing a suggestion, `listeningHistory`
+correctly records the real played track; (4) clicking "No new songs" afterward sent that history
+in the Groq request (`recentlyPlayed` array with the actual played track) and reused `"chill"` as
+the mood rather than a hardcoded placeholder — confirmed via the captured request payload and the
+system prompt text; (5) the results heading read `Familiar favorites for your "chill" mood`.
+`npm run build` succeeds.
+
+**Result:** ✅ Working as expected. No regressions.
+
 ### Phase 9 — Deploy to Vercel (2026-07-06, in progress)
 
 **Pre-deploy checks done:** Ran `npm run build` — succeeds cleanly (`dist/index.html`,

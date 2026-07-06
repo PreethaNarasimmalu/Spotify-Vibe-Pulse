@@ -9,18 +9,21 @@ const DISCOVERY_SYSTEM_PROMPT =
   'listener\'s current mood word, return exactly 10 track recommendations that genuinely fit that ' +
   'mood, as strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. ' +
   'Favor a mix of well-known and lesser-known tracks, not just top-40 picks — but never ignore the ' +
-  'listener\'s languages or artists to do so.'
+  'listener\'s languages or artists to do so. If a recentlyPlayed list is provided, avoid ' +
+  'recommending tracks the listener has already been playing — this is meant to be discovery.'
 
 // Used by the "No new songs" button — the inverse of the discovery prompt: the
 // listener explicitly wants familiar comfort listening, not discovery.
 const FAMILIAR_SYSTEM_PROMPT =
   'You are a music recommendation engine for a Spotify-like app. The listener\'s taste anchors ' +
   '(1-2 preferred languages, favorite artists) are hard constraints. The listener wants familiar ' +
-  'comfort listening, not discovery: return exactly 10 well-known, popular track recommendations ' +
-  'specifically BY the artists they listed, in their preferred languages, as strict JSON: ' +
-  '{"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. Do not suggest obscure ' +
-  'or new artists — only the listener\'s own chosen artists, or extremely similar established ' +
-  'names in the same languages.'
+  'comfort listening for their current mood, not discovery: return exactly 10 well-known, popular ' +
+  'track recommendations that fit the mood, as strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. ' +
+  'No markdown, no preamble. If a recentlyPlayed list is provided (their actual recent listening ' +
+  'history), heavily favor tracks by those same artists, or by the listener\'s originally chosen ' +
+  'favorite artists — this reflects their real current taste better than a static onboarding list ' +
+  'alone. Do not suggest obscure or new/undiscovered artists here — only artists the listener ' +
+  'already listens to or extremely similar established names in the same languages.'
 
 function loadApiKeys() {
   const multi = import.meta.env.VITE_GROQ_API_KEYS
@@ -39,7 +42,7 @@ function isRetryableStatus(status) {
   return status === 401 || status === 403 || status === 429
 }
 
-export async function getMoodRecommendations(tasteAnchors, mood, mode = 'discovery') {
+export async function getMoodRecommendations(tasteAnchors, mood, mode = 'discovery', recentlyPlayed = []) {
   if (apiKeys.length === 0) {
     throw new Error('No Groq API key configured (set VITE_GROQ_API_KEY or VITE_GROQ_API_KEYS)')
   }
@@ -60,7 +63,7 @@ export async function getMoodRecommendations(tasteAnchors, mood, mode = 'discove
           model: MODEL,
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: JSON.stringify({ tasteAnchors, mood }) },
+            { role: 'user', content: JSON.stringify({ tasteAnchors, mood, recentlyPlayed }) },
           ],
           response_format: { type: 'json_object' },
         }),
