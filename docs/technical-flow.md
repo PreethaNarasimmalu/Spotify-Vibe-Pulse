@@ -30,16 +30,14 @@ spotify-vibe-pulse/
     │   └── useLocalStorage.js    # generic get/set/sync hook
     │
     ├── lib/
-    │   ├── storage.js            # localStorage keys + get/set helpers
-    │   └── metrics.js            # metric read/write + calculations + console logging
+    │   └── storage.js            # localStorage keys + get/set helpers
     │
     ├── components/
     │   ├── layout/ (Sidebar, TopBar, MainLayout)
     │   ├── player/ (PlayerBar, ProgressBar)
     │   ├── cards/ (TrackCard — shared by Home + Vibe Pulse)
     │   ├── tasteAnchors/ (TasteAnchorsModal, ChipGroup, TasteBanner)
-    │   ├── vibePulse/ (MoodCloud, ChangeVibeButton, SuggestionGrid)
-    │   └── debug/ (DebugMetricsPanel)
+    │   └── vibePulse/ (MoodCloud, ChangeVibeButton, SuggestionGrid)
     │
     └── pages/
         ├── Home.jsx
@@ -56,13 +54,11 @@ spotify-vibe-pulse/
 - **Home.jsx** — on mount, fires 3 seed queries in parallel via itunes.js, renders sectioned card grids. Card click → `player.play(track)`.
 - **TasteAnchorsModal** — 4-step chip-tap flow (3 styles, 3 artists, 2 directors, 1 singer) from curated static chip lists. Writes `tasteAnchors` to localStorage. `TasteBanner` shows contextually (after N plays, not on first load) and via a manual "Update your taste" entry point in settings.
 - **VibePulse.jsx** — daily-cap check → MoodCloud (scattered layout) → on mood tap, groq.js call → 6 `{artist, track}` → `Promise.all(itunes.searchByArtistTrack)` → SuggestionGrid of TrackCards with thumbs. ChangeVibeButton always visible, independent of daily cap.
-- **DebugMetricsPanel** — collapsible panel reading `lib/metrics.js` computed values.
 
 ## State management
 
 - No Redux/Zustand. React Context only for the player (the one cross-cutting piece of state).
-- `useLocalStorage(key, defaultValue)` hook backs `tasteAnchors`, `vibePulseFeedback`, `dailyVibePrompt`, `vibePulseMetrics`.
-- Metrics updated via explicit functions (`recordThumbsFeedback()`, `recordVibeButtonTap()`, `recordDailyVibeResponse()`, `recordListeningTime(seconds)`, `recordArtistPlay(artistName)`) exported from `lib/metrics.js`; each writes to localStorage and `console.log`s the event.
+- `useLocalStorage(key, defaultValue)` hook backs `tasteAnchors`, `vibePulseFeedback`, `dailyVibePrompt`.
 
 ## Data flow
 
@@ -80,9 +76,6 @@ VibePulse mood click --> groq.js.getMoodRecommendations(tasteAnchors, mood)
 
 SuggestionGrid card click --> PlayerContext.play(track)  (same shared player as Home)
 SuggestionGrid thumbs click --> storage.js.set('vibePulseFeedback', {...})  (isolated, never touches tasteAnchors)
-
-PlayerContext (any play() call) --> metrics.recordListeningTime / recordArtistPlay
-   --> DebugMetricsPanel reads storage and displays
 ```
 
 Key integration point: `TrackCard` is shared by Home and Vibe Pulse, so both call the same
@@ -144,18 +137,6 @@ not change the request/response shape above.
 // key: "dailyVibePrompt"
 { lastShownDate: "YYYY-MM-DD", lastResponse: "picked" | "dismissed" | null }
 
-// key: "vibePulseMetrics"
-{
-  suggestionsShown: number,
-  suggestionsRated: number,          // thumbsRate = suggestionsRated / suggestionsShown
-  vibeButtonTaps: number,
-  dailyPromptsShown: number,
-  dailyPromptsPicked: number,        // participation % = picked / shown
-  sessionArtistsIntroduced: string[],// artists first heard via Vibe Pulse this session
-  sessionArtistReplays: number,      // returnToArtistRate approximation
-  totalListeningSeconds: number      // avgWeeklyListeningTime (guardrail, cumulative proxy)
-}
-
 // key: "tasteBannerDismissedAt"
 { dismissedAt: ISOString }
 ```
@@ -168,7 +149,7 @@ not change the request/response shape above.
 4. Taste Anchors chip-tap flow + localStorage
 5. Vibe Pulse tab: mood cloud → Groq → iTunes lookup → suggestion cards
 6. Thumbs up/down + manual "change my vibe" button
-7. Debug Metrics panel
+7. ~~Debug Metrics panel~~ — built, then removed per user request (not a user-facing feature; see `docs/status.md`)
 8. Visual polish
 9. Deploy to Vercel
 

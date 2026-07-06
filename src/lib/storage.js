@@ -2,7 +2,6 @@ export const STORAGE_KEYS = {
   TASTE_ANCHORS: 'tasteAnchors',
   VIBE_PULSE_FEEDBACK: 'vibePulseFeedback',
   DAILY_VIBE_PROMPT: 'dailyVibePrompt',
-  VIBE_PULSE_METRICS: 'vibePulseMetrics',
   TASTE_BANNER_DISMISSED: 'tasteBannerDismissedAt',
 }
 

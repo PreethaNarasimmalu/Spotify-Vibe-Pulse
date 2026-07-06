@@ -1,7 +1,6 @@
 import { usePlayer } from '../../context/PlayerContext'
 import { useLocalStorage } from '../../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../../lib/storage'
-import { recordThumbsFeedback } from '../../lib/metrics'
 import TrackCard from '../cards/TrackCard'
 
 function feedbackKey(track) {
@@ -16,9 +15,7 @@ export default function SuggestionGrid({ tracks, mood }) {
 
   const setTrackFeedback = (track, value) => {
     const key = feedbackKey(track)
-    const alreadyRated = feedback[key] !== undefined
     setFeedback((prev) => ({ ...prev, [key]: value }))
-    if (!alreadyRated) recordThumbsFeedback()
   }
 
   return (

@@ -87,18 +87,14 @@ independent of the daily cap, and re-opens the mood cloud on demand (same Groq/i
 Phase 5, via a separate `manualPromptOpen` state that never touches `dailyVibePrompt`). No new API
 calls beyond what Phase 5 already makes.
 
-## Phase 7 — Debug Metrics panel ✅
-**Files:** `src/lib/metrics.js`, `src/components/debug/DebugMetricsPanel.jsx`.
-**Architecture:** Explicit recorder functions (`recordThumbsFeedback`, `recordVibeButtonTap`,
-`recordDailyVibeResponse`, `recordListeningTime`, `recordArtistPlay`, `recordSuggestionsShown`)
-called from the exact components where each event happens (`PlayerContext`, `VibePulse.jsx`,
-`SuggestionGrid`), writing to `localStorage.vibePulseMetrics` and `console.log`-ing each event. The
-panel reads and displays the derived metrics (thumbsRate, participation %, etc.), refreshing live
-via a `CustomEvent` subscription — no API calls. `itunes.js` tags each track with its `source`
-(`home`/`vibepulse`) so `returnToArtistRate` attributes correctly. Two real bugs were found and
-fixed here: a side-effect-inside-setState-updater bug in `PlayerContext.play()` that double-counted
-`recordArtistPlay`, and a layout overlap between the debug panel and the mood cloud's dismiss
-button — see `status.md` for details.
+## Phase 7 — Debug Metrics panel ❌ Reverted (2026-07-06)
+Originally built a `lib/metrics.js` + `DebugMetricsPanel.jsx` recording the 5 case-study metrics
+from the spec. Removed entirely per user request: this isn't a user-facing feature (real Spotify
+tracks this kind of thing in an internal analytics dashboard, not the client app), and the user
+wants the prototype to contain only user-specific features. All recorder calls, the `source`
+tagging in `itunes.js` that existed solely to feed it, and the `vibePulseMetrics` storage key were
+removed too — see `status.md` for the full list of what was taken out and how the removal was
+verified.
 
 ## Phase 8 — Visual polish ✅
 **Files:** `src/components/icons/PlaybackIcons.jsx`, `src/components/player/VolumeSlider.jsx`,

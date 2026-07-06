@@ -28,6 +28,7 @@ See `docs/technical-flow.md` for the full architecture.
 | 2026-07-05 | `returnToArtistRate` attribution tagged at the API layer: `itunes.js`'s `searchTracks`/`searchByArtistTrack` now take a `source` param (`'home'`/`'vibepulse'`, defaulted appropriately) embedded directly on each normalized track object, rather than mapping it on in each page. `PlayerContext.play()` reads `track.source` to attribute plays for the metric. |
 | 2026-07-05 | Found and fixed a real bug during Phase 7 testing: `PlayerContext.play()` was invoking side effects (`audio.play()`, `recordArtistPlay()`) inside a `setCurrentTrack(prevTrack => ...)` functional updater. React can invoke state updaters more than once (observed under dev StrictMode — `[metrics]` logs showed `artistPlay` firing twice per click), which double-counted metrics. Fixed by reading the previous track from a ref (`currentTrackRef`) and running all side effects directly in the event handler, not inside any setState updater. |
 | 2026-07-05 | Repositioned `DebugMetricsPanel` from fixed top-right to fixed bottom-right (above the player bar) after Playwright testing showed it overlapping and intercepting clicks on the Vibe Pulse mood cloud's dismiss button — both were anchored to the same screen region. |
+| 2026-07-06 | **Reverted Phase 7 entirely per user request.** The Debug Metrics panel isn't a user-facing feature real Spotify would ship (that instrumentation lives in an internal analytics dashboard, not the client), and the user wants only user-specific features in this prototype. Removed `lib/metrics.js`, `components/debug/DebugMetricsPanel.jsx`, the "Debug Metrics" top-bar button, all `record*` calls from `PlayerContext`/`VibePulse.jsx`/`SuggestionGrid.jsx`, the now-dead `source` tagging in `itunes.js` (it only existed to feed `returnToArtistRate`), and the unused `VIBE_PULSE_METRICS` storage key. Verified via Playwright that Home, Vibe Pulse, and thumbs feedback all still work correctly with zero references to metrics/debug remaining in `src/`, and that the production build succeeds. |
 | 2026-07-05 | Phase 8 polish: replaced emoji-based playback controls (⏮⏸⏭▶🔊) with hand-drawn SVG icons (`components/icons/PlaybackIcons.jsx`) — emoji render inconsistently across systems/browsers and don't match Spotify's icon language. Kept thumbs up/down as emoji (👍👎), a deliberate, common choice for reaction icons distinct from core transport controls. Also replaced the native `<input type=range>` volume control with a custom click-to-set slider (`VolumeSlider.jsx`) matching the look of the existing `ProgressBar`, since native range inputs render as a bulgy OS-styled widget that doesn't match Spotify's thin minimal sliders. |
 
 ## Phase status
@@ -42,7 +43,7 @@ See `docs/technical-flow.md` for the full architecture.
 | 4 | Taste Anchors chip-tap flow | ✅ Done — verified in browser |
 | 5 | Vibe Pulse tab (mood cloud → Groq → iTunes → cards) | ✅ Done — verified with mocked network transport |
 | 6 | Thumbs up/down + change-my-vibe button | ✅ Done — verified with mocked network transport |
-| 7 | Debug Metrics panel | ✅ Done — verified in browser |
+| 7 | Debug Metrics panel | ❌ Reverted per user request (2026-07-06) — not a user-facing feature, removed entirely |
 | 8 | Visual polish | ✅ Done — verified in browser |
 | 9 | Deploy to Vercel | ⬜ Not started |
 
@@ -256,6 +257,18 @@ Playwright runs against the actual code):**
 
 **Result:** ✅ Working as expected after both fixes; metric counts are now internally consistent
 (replay count matches actual play count). Ready for Phase 8 (visual polish).
+
+**Update (2026-07-06): Phase 7 reverted entirely.** After discussing what the Debug Metrics panel
+was for, the user decided they only want user-facing features in this prototype — real Spotify
+users never see this kind of instrumentation (it lives in an internal analytics dashboard, not the
+client app), so it didn't belong in a polished product prototype. Removed `lib/metrics.js`,
+`components/debug/DebugMetricsPanel.jsx`, the "Debug Metrics" top-bar toggle, every `record*` call
+from `PlayerContext.jsx`/`VibePulse.jsx`/`SuggestionGrid.jsx`, the `source` tagging in `itunes.js`
+(it only existed to attribute `returnToArtistRate`), and the unused `vibePulseMetrics`
+localStorage key. Re-verified via Playwright: no "Debug Metrics" text anywhere in the app, Home
+cards still play, the Vibe Pulse mood cloud/Groq/iTunes pipeline still works, thumbs feedback still
+writes to `vibePulseFeedback` correctly, and `npm run build` still succeeds (bundle shrank
+slightly, ~216KB vs ~221KB, consistent with the removed code). No regressions.
 
 ### Phase 8 — Visual polish (2026-07-05)
 

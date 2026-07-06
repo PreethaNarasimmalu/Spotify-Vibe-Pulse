@@ -5,7 +5,7 @@ const TAB_TITLES = {
   vibepulse: 'Vibe Pulse',
 }
 
-export default function TopBar({ activeTab, onToggleDebugPanel }) {
+export default function TopBar({ activeTab }) {
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between px-8 py-4 bg-spotify-black/90 backdrop-blur-md">
       <div className="flex items-center gap-4">
@@ -25,14 +25,6 @@ export default function TopBar({ activeTab, onToggleDebugPanel }) {
         </button>
         <h1 className="text-white font-bold text-lg">{TAB_TITLES[activeTab] ?? ''}</h1>
       </div>
-
-      <button
-        type="button"
-        onClick={onToggleDebugPanel}
-        className="text-xs font-bold text-spotify-gray hover:text-white border border-[#535353] rounded-full px-3 py-1 transition-colors cursor-pointer"
-      >
-        Debug Metrics
-      </button>
     </header>
   )
 }

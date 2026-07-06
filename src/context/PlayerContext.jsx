@@ -1,5 +1,4 @@
 import { createContext, useContext, useRef, useState, useCallback, useEffect } from 'react'
-import { recordArtistPlay, recordListeningTime } from '../lib/metrics'
 
 const PlayerContext = createContext(null)
 
@@ -14,9 +13,9 @@ export function PlayerProvider({ children }) {
   const [duration, setDuration] = useState(0)
   const [volume, setVolumeState] = useState(1)
 
-  // Side effects (audio.play/pause, metrics) run here directly rather than
-  // inside a setState updater — React may invoke updater functions more than
-  // once (e.g. under StrictMode), which would double-fire those side effects.
+  // Side effects (audio.play/pause) run here directly rather than inside a
+  // setState updater — React may invoke updater functions more than once
+  // (e.g. under StrictMode), which would double-fire those side effects.
   const play = useCallback((track, trackQueue = null) => {
     const audio = audioRef.current
     if (!audio) return
@@ -41,7 +40,6 @@ export function PlayerProvider({ children }) {
     audio.currentTime = 0
     audio.play()
     setIsPlaying(true)
-    recordArtistPlay(track.artistName, track.source)
     currentTrackRef.current = track
     setCurrentTrack(track)
   }, [])
@@ -111,15 +109,6 @@ export function PlayerProvider({ children }) {
       audio.removeEventListener('ended', onEnded)
     }
   }, [])
-
-  useEffect(() => {
-    if (!isPlaying) return
-    const LISTENING_TIME_TICK_SECONDS = 3
-    const interval = setInterval(() => {
-      recordListeningTime(LISTENING_TIME_TICK_SECONDS)
-    }, LISTENING_TIME_TICK_SECONDS * 1000)
-    return () => clearInterval(interval)
-  }, [isPlaying])
 
   return (
     <PlayerContext.Provider

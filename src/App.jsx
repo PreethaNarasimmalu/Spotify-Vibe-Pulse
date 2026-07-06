@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import MainLayout from './components/layout/MainLayout'
 import TasteBanner from './components/tasteAnchors/TasteBanner'
 import TasteAnchorsModal from './components/tasteAnchors/TasteAnchorsModal'
-import DebugMetricsPanel from './components/debug/DebugMetricsPanel'
 import { PlayerProvider, usePlayer } from './context/PlayerContext'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { STORAGE_KEYS } from './lib/storage'
@@ -31,7 +30,6 @@ function AppShell() {
   const [showTasteModal, setShowTasteModal] = useState(false)
   const [bannerDismissed, setBannerDismissed] = useState(false)
   const [playCount, setPlayCount] = useState(0)
-  const [showDebugPanel, setShowDebugPanel] = useState(false)
   const { currentTrack } = usePlayer()
 
   useEffect(() => {
@@ -47,14 +45,11 @@ function AppShell() {
       activeTab={activeTab}
       onSelectTab={setActiveTab}
       onOpenTasteAnchors={() => setShowTasteModal(true)}
-      onToggleDebugPanel={() => setShowDebugPanel((v) => !v)}
     >
       {showBanner && (
         <TasteBanner onOpen={() => setShowTasteModal(true)} onDismiss={() => setBannerDismissed(true)} />
       )}
       <Page />
-
-      {showDebugPanel && <DebugMetricsPanel onClose={() => setShowDebugPanel(false)} />}
 
       {showTasteModal && (
         <TasteAnchorsModal
