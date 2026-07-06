@@ -283,3 +283,17 @@ language.
 
 **Result:** ✅ Working as expected, no regressions. Ready for Phase 9 (deploy to Vercel).
 
+### Phase 9 — Deploy to Vercel (2026-07-06, in progress)
+
+**Pre-deploy checks done:** Ran `npm run build` — succeeds cleanly (`dist/index.html`,
+~23KB CSS, ~221KB JS, gzip ~69KB). Ran `npm run preview` and confirmed the production build serves
+and loads (200 OK). Removed dev-only artifacts that had no business shipping: `public/test-tone.wav`
+and `scripts/gen-test-tone.mjs` (Phase 2's local audio stand-in, unreferenced since Phase 3) and the
+`playwright` devDependency (used only for this session's local verification, not by the app).
+Confirmed `dist` and `.env`/`.env.*` are correctly gitignored (`.env.example` stays tracked).
+
+**Vercel reachability:** Confirmed `vercel.com`/`api.vercel.com` are blocked by this sandbox's
+egress policy, same as `itunes.apple.com`/`api.groq.com` — so an in-sandbox CLI deploy isn't
+possible here either. Deployment is handed off to the user via the GitHub+dashboard flow (or the
+Vercel CLI on their own machine), per the task's deployment section.
+

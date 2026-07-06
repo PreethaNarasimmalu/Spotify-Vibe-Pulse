@@ -108,8 +108,9 @@ Spotify's icon language, replaced the native volume `<input type=range>` with a 
 matching the existing progress bar, fixed the track-card play/pause overlay to stay visible while
 that track is playing (not just on hover), and added a time-of-day Home greeting. No API calls.
 
-## Phase 9 — Deploy to Vercel
-Push to GitHub, import in Vercel, add `VITE_GROQ_API_KEYS` (or `VITE_GROQ_API_KEY`) as a Vercel
-project environment variable, deploy. This is also where live iTunes/Groq network calls get their
-first real (non-mocked) confirmation, since this sandbox's egress policy blocks both hosts (see
-`docs/status.md` decision log).
+## Phase 9 — Deploy to Vercel (in progress)
+Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
+`VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live
+iTunes/Groq network calls get their first real (non-mocked) confirmation, since this sandbox's
+egress policy blocks both hosts (see `docs/status.md` decision log) — and blocks `vercel.com`
+itself, so the deploy is handed off to the user rather than run from this sandbox via CLI.
