@@ -9,6 +9,13 @@ const SEED_SECTIONS = [
   { title: 'Hip Hop Hits', query: 'hip hop hits' },
 ]
 
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export default function Home() {
   const { play, currentTrack, isPlaying } = usePlayer()
   const [sections, setSections] = useState([])
@@ -56,6 +63,7 @@ export default function Home() {
 
   return (
     <div className="pt-4 flex flex-col gap-8">
+      <h1 className="text-white text-3xl font-bold -mb-2">{getGreeting()}</h1>
       {sections.map((section) => (
         <section key={section.title}>
           <h2 className="text-white text-2xl font-bold mb-4">{section.title}</h2>

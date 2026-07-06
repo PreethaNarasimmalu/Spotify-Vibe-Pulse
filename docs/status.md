@@ -28,6 +28,7 @@ See `docs/technical-flow.md` for the full architecture.
 | 2026-07-05 | `returnToArtistRate` attribution tagged at the API layer: `itunes.js`'s `searchTracks`/`searchByArtistTrack` now take a `source` param (`'home'`/`'vibepulse'`, defaulted appropriately) embedded directly on each normalized track object, rather than mapping it on in each page. `PlayerContext.play()` reads `track.source` to attribute plays for the metric. |
 | 2026-07-05 | Found and fixed a real bug during Phase 7 testing: `PlayerContext.play()` was invoking side effects (`audio.play()`, `recordArtistPlay()`) inside a `setCurrentTrack(prevTrack => ...)` functional updater. React can invoke state updaters more than once (observed under dev StrictMode — `[metrics]` logs showed `artistPlay` firing twice per click), which double-counted metrics. Fixed by reading the previous track from a ref (`currentTrackRef`) and running all side effects directly in the event handler, not inside any setState updater. |
 | 2026-07-05 | Repositioned `DebugMetricsPanel` from fixed top-right to fixed bottom-right (above the player bar) after Playwright testing showed it overlapping and intercepting clicks on the Vibe Pulse mood cloud's dismiss button — both were anchored to the same screen region. |
+| 2026-07-05 | Phase 8 polish: replaced emoji-based playback controls (⏮⏸⏭▶🔊) with hand-drawn SVG icons (`components/icons/PlaybackIcons.jsx`) — emoji render inconsistently across systems/browsers and don't match Spotify's icon language. Kept thumbs up/down as emoji (👍👎), a deliberate, common choice for reaction icons distinct from core transport controls. Also replaced the native `<input type=range>` volume control with a custom click-to-set slider (`VolumeSlider.jsx`) matching the look of the existing `ProgressBar`, since native range inputs render as a bulgy OS-styled widget that doesn't match Spotify's thin minimal sliders. |
 
 ## Phase status
 
@@ -42,7 +43,7 @@ See `docs/technical-flow.md` for the full architecture.
 | 5 | Vibe Pulse tab (mood cloud → Groq → iTunes → cards) | ✅ Done — verified with mocked network transport |
 | 6 | Thumbs up/down + change-my-vibe button | ✅ Done — verified with mocked network transport |
 | 7 | Debug Metrics panel | ✅ Done — verified in browser |
-| 8 | Visual polish | ⬜ Not started |
+| 8 | Visual polish | ✅ Done — verified in browser |
 | 9 | Deploy to Vercel | ⬜ Not started |
 
 ## Test log
@@ -255,4 +256,30 @@ Playwright runs against the actual code):**
 
 **Result:** ✅ Working as expected after both fixes; metric counts are now internally consistent
 (replay count matches actual play count). Ready for Phase 8 (visual polish).
+
+### Phase 8 — Visual polish (2026-07-05)
+
+**What was built:** Audited the running app visually via Playwright screenshots first. Found the
+player bar's transport controls (skip/play/pause) and volume icon were emoji glyphs, which render
+inconsistently across systems and don't match Spotify's actual icon language — the volume emoji in
+particular rendered barely legible in the screenshot. Built `components/icons/PlaybackIcons.jsx`
+(hand-drawn SVGs for play/pause/skip-previous/skip-next/volume, styled close to Spotify's actual
+icon set) and used them in `PlayerBar.jsx` and `TrackCard.jsx`. Replaced the native
+`<input type=range>` volume control with `VolumeSlider.jsx`, a custom click-to-set slider matching
+the existing `ProgressBar`'s look (thin track, white/green fill, hover-revealed thumb) instead of
+the bulgy OS-native range widget. Kept thumbs up/down as emoji (👍👎) — a deliberate choice, since
+those are reaction icons rather than core transport chrome. Fixed `TrackCard`'s play/pause overlay
+to stay visible (not just on hover) when that card is the one currently playing, matching real
+Spotify behavior. Added a time-of-day-based greeting ("Good morning/afternoon/evening") to Home,
+replacing a missing/hardcoded header.
+
+**How it was tested:** Ran `npm run dev`, took before/after screenshots of the player bar and Home
+grid. Re-ran functional checks against the new icons/slider to confirm nothing regressed: skip
+buttons' disabled/enabled state still correctly reflects queue position, play/pause toggling still
+flips `audio.paused`, and clicking ~30% along the new custom volume slider set `audio.volume` to
+exactly `0.30`. Visually confirmed the new SVG icons render crisp and consistent (no more
+barely-visible speaker emoji), and the volume slider now matches the progress bar's visual
+language.
+
+**Result:** ✅ Working as expected, no regressions. Ready for Phase 9 (deploy to Vercel).
 

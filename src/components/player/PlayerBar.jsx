@@ -1,5 +1,7 @@
 import { usePlayer } from '../../context/PlayerContext'
 import ProgressBar from './ProgressBar'
+import VolumeSlider from './VolumeSlider'
+import { PlayIcon, PauseIcon, SkipPreviousIcon, SkipNextIcon } from '../icons/PlaybackIcons'
 
 export default function PlayerBar() {
   const {
@@ -40,9 +42,9 @@ export default function PlayerBar() {
             onClick={skipPrevious}
             disabled={!hasPrevious}
             aria-label="Previous"
-            className="text-spotify-gray hover:text-white disabled:opacity-30 disabled:cursor-default cursor-pointer text-lg"
+            className="text-spotify-gray hover:text-white disabled:opacity-30 disabled:cursor-default cursor-pointer"
           >
-            ⏮
+            <SkipPreviousIcon />
           </button>
           <button
             type="button"
@@ -52,33 +54,23 @@ export default function PlayerBar() {
             data-testid="play-pause-button"
             className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black cursor-pointer hover:scale-105 transition-transform disabled:opacity-40"
           >
-            {isPlaying ? '⏸' : '▶'}
+            {isPlaying ? <PauseIcon /> : <PlayIcon />}
           </button>
           <button
             type="button"
             onClick={skipNext}
             disabled={!hasNext}
             aria-label="Next"
-            className="text-spotify-gray hover:text-white disabled:opacity-30 disabled:cursor-default cursor-pointer text-lg"
+            className="text-spotify-gray hover:text-white disabled:opacity-30 disabled:cursor-default cursor-pointer"
           >
-            ⏭
+            <SkipNextIcon />
           </button>
         </div>
         <ProgressBar progress={progress} duration={duration} onSeek={seek} />
       </div>
 
-      <div className="w-64 flex items-center justify-end gap-2">
-        <span className="text-spotify-gray text-sm">🔊</span>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={volume}
-          onChange={(e) => setVolume(parseFloat(e.target.value))}
-          className="w-24 accent-spotify-green cursor-pointer"
-          aria-label="Volume"
-        />
+      <div className="w-64 flex items-center justify-end">
+        <VolumeSlider volume={volume} onChange={setVolume} />
       </div>
     </footer>
   )

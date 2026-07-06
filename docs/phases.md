@@ -100,9 +100,13 @@ fixed here: a side-effect-inside-setState-updater bug in `PlayerContext.play()` 
 `recordArtistPlay`, and a layout overlap between the debug panel and the mood cloud's dismiss
 button — see `status.md` for details.
 
-## Phase 8 — Visual polish
-No new architecture — spacing/hover/transition refinement to match Spotify's actual UI more
-closely. No API calls.
+## Phase 8 — Visual polish ✅
+**Files:** `src/components/icons/PlaybackIcons.jsx`, `src/components/player/VolumeSlider.jsx`,
+updated `PlayerBar.jsx`, `TrackCard.jsx`, `Home.jsx`.
+No new architecture — replaced emoji-based playback controls with proper SVG icons matching
+Spotify's icon language, replaced the native volume `<input type=range>` with a custom slider
+matching the existing progress bar, fixed the track-card play/pause overlay to stay visible while
+that track is playing (not just on hover), and added a time-of-day Home greeting. No API calls.
 
 ## Phase 9 — Deploy to Vercel
 Push to GitHub, import in Vercel, add `VITE_GROQ_API_KEYS` (or `VITE_GROQ_API_KEY`) as a Vercel
