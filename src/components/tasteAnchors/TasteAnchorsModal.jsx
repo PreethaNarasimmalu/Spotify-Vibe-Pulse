@@ -64,9 +64,11 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
           </button>
         </div>
 
+        <h1 className="text-white text-2xl font-bold mb-4">Choose your favorites</h1>
+
         {isLanguageStep ? (
           <>
-            <h2 className="text-white text-xl font-bold mb-4">Which language(s) do you listen to most? (up to 2)</h2>
+            <h2 className="text-white text-sm text-spotify-gray mb-4">Which language(s) do you listen to most? (up to 2)</h2>
             <ChipGroup
               options={[...LANGUAGES, OTHER_LANGUAGE]}
               selected={selectedChips}
@@ -87,7 +89,7 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
           </>
         ) : (
           <>
-            <h2 className="text-white text-xl font-bold mb-4">Pick 3 artists you like</h2>
+            <h2 className="text-white text-sm text-spotify-gray mb-4">Pick 3 artists you like</h2>
             <ChipGroup options={artistOptions} selected={artists} max={3} onToggle={toggleArtist} />
           </>
         )}

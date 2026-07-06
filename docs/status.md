@@ -508,6 +508,40 @@ succeeds.
 
 **Result:** ✅ Working as expected. No regressions.
 
+### Follow-up — Onboarding sequence fix: delay, close-also-chains, heading (2026-07-06)
+
+**The real gap, finally pinned down:** the user's exact spec — popup 1 (preferences) appears ~1-2s
+after load; whether the user completes it *or* just closes it, popup 2 (vibe/mood) comes next;
+closing or picking there ends the sequence (playlist shows if they picked); this whole two-popup
+chain runs **once ever**. Prior batches had built the "complete preferences → chain to vibe" path
+correctly, but **not** the "close preferences without finishing → still chain to vibe" path —
+`closeTasteModal()` only marked `onboardingSeen` and stopped, so dismissing the first popup
+silently ended the whole sequence instead of continuing to the second popup. That was the actual
+bug, not the popup failing to appear at all (verified working in the prior round).
+
+**What was fixed:** (1) `App.jsx`'s mount effect now waits 1.5s (`setTimeout`) before showing the
+first-load popup, instead of appearing instantly on render; (2) `closeTasteModal()` now mirrors
+`saveTasteAnchors()` — both branches navigate to Vibe Pulse and set `pendingMoodPicker` when
+`isOnboardingFlow` is true, so dismissing the preferences popup without finishing still chains
+into the vibe popup next, exactly like completing it does. This only applies to the one-shot
+onboarding flow (`isOnboardingFlow`), never to Preferences opened later via the sidebar or the
+banner — those still just close normally. (3) Added a prominent "Choose your favorites" `<h1>`
+title to `TasteAnchorsModal`, with the per-step question demoted to a smaller gray subheading
+underneath.
+
+**How it was tested:** Ran two full end-to-end scenarios via Playwright against a genuinely fresh
+page load (no pre-seeded localStorage) with the usual Groq/iTunes mocks. **Scenario 1** (close
+without finishing): confirmed the modal is not visible at 0s or ~0.9s, but is visible at ~1.8s
+(confirming the delay); confirmed the heading reads "Choose your favorites"; clicked Close (X)
+without picking anything, and confirmed the app still navigated to Vibe Pulse **and** auto-opened
+the mood cloud; dismissed that too and confirmed no further popups appear (normal browsing);
+reloaded the page and confirmed the onboarding sequence does **not** fire again (fires once ever,
+persisted via `onboardingSeen`). **Scenario 2** (complete normally): confirmed completing
+preferences also chains to the vibe popup, and picking a mood + Set displays the suggestion list
+("playlist") with 10 rows. `npm run build` succeeds.
+
+**Result:** ✅ Working as expected, matching the exact requested sequence. No regressions.
+
 ### Phase 9 — Deploy to Vercel (2026-07-06, in progress)
 
 **Pre-deploy checks done:** Ran `npm run build` — succeeds cleanly (`dist/index.html`,

@@ -225,6 +225,18 @@ header "Change my vibe" pill (`ChangeVibeButton.jsx`) was deleted outright. `Sug
 shows thumbs feedback for the currently-loaded track, not every row up front — feedback is asked
 after listening, not before.
 
+## Follow-up — Onboarding sequence fix: delay, close-also-chains (2026-07-06)
+**Files:** `App.jsx`, `TasteAnchorsModal.jsx`.
+
+The prior "chain to vibe popup" logic only fired when the user finished and saved preferences, not
+when they closed the popup without finishing — which meant the two-popup sequence broke silently
+for anyone who just hit the X. Fixed `closeTasteModal()` to mirror `saveTasteAnchors()` so both
+paths chain into the mood popup during the one-shot onboarding flow. Also added a 1.5s delay before
+the first-load popup appears (instead of instantly on mount), and added a "Choose your favorites"
+title to the modal. Verified end-to-end with Playwright: close-without-finishing still chains to
+the vibe popup and a playlist displays if a mood is picked; the sequence never re-fires after the
+first time.
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live

@@ -44,26 +44,37 @@ function AppShell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack?.id])
 
-  // Forced first-load onboarding: only fires once, tracked by onboardingSeen —
-  // separate from tasteAnchors itself so a user who closes without finishing
-  // doesn't get force-prompted again on every reload (the contextual banner
-  // below is the fallback for that case instead).
+  // Forced first-load onboarding: only fires once ever, tracked by
+  // onboardingSeen — separate from tasteAnchors itself so closing without
+  // finishing doesn't get force-prompted again on every reload. Waits ~1.5s
+  // after mount rather than appearing instantly, so it doesn't feel like a
+  // jarring interstitial before the app has even rendered anything.
   useEffect(() => {
-    if (!onboardingSeen && !tasteAnchors) {
+    if (onboardingSeen || tasteAnchors) return
+    const timer = setTimeout(() => {
       setShowTasteModal(true)
       setIsOnboardingFlow(true)
-    }
+    }, 1500)
+    return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const Page = PAGES[activeTab]
   const showBanner = !tasteAnchors && !bannerDismissed && playCount >= PLAYS_BEFORE_TASTE_BANNER
 
+  // Closing the first-load preferences popup without finishing it still
+  // chains into the vibe popup next, same as saving does — the two-popup
+  // sequence (preferences, then vibe) always runs to completion the first
+  // time, regardless of whether the user filled in preferences or just
+  // dismissed it. Only applies to this one-shot onboarding flow, never to
+  // Preferences opened later via the sidebar or the banner.
   const closeTasteModal = () => {
     setShowTasteModal(false)
     if (isOnboardingFlow) {
       setOnboardingSeen(true)
       setIsOnboardingFlow(false)
+      setActiveTab('vibepulse')
+      setPendingMoodPicker(true)
     }
   }
 
