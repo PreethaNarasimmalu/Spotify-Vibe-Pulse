@@ -38,8 +38,8 @@ spotify-vibe-pulse/
     │   ├── player/ (PlayerBar, ProgressBar, VolumeSlider)
     │   ├── icons/ (PlaybackIcons)
     │   ├── cards/ (TrackCard — used by Home)
-    │   ├── tasteAnchors/ (TasteAnchorsModal, InlinePreferencesEditor, ChipGroup, TasteBanner)
-    │   └── vibePulse/ (MoodCloud, ChangeVibeButton, NoNewSongsButton, SuggestionList)
+    │   ├── tasteAnchors/ (TasteAnchorsModal, ChipGroup, TasteBanner)
+    │   └── vibePulse/ (MoodCloud, FloatingVibeButton, NoNewSongsButton, SuggestionList)
     │
     └── pages/
         ├── Home.jsx
@@ -56,31 +56,33 @@ spotify-vibe-pulse/
 - **Home.jsx** — on mount, fires 3 seed queries in parallel via itunes.js, renders sectioned card grids. Card click → `player.play(track)`.
 - **TasteAnchorsModal** — full-screen popup, 2-step chip-tap flow: pick up to 2 languages, then pick 3 artists from the union of those languages' curated pools. Both steps include an "Other" chip that reveals a text box for a custom language/artist name when the curated options don't fit; the typed value (not the word "Other") is what's stored. Writes `{languages, artists, updatedAt}` to `localStorage.tasteAnchors`. Used for the forced first-load onboarding, the contextual `TasteBanner` fallback, and the sidebar's "Preferences" trigger (all three open this same popup — there is no separate inline editor).
 - **Sidebar** — nav + a collapsible, independently-scrollable "Your Library" panel: **Artists** (lists the user's taste-anchor artists, always shown) and a **Preferences** pill that opens `TasteAnchorsModal`.
-- **VibePulse.jsx** — daily-cap check → `MoodCloud` (scattered layout; tapping a mood highlights it but only fires the query once the "Set" button inside the modal is clicked) → groq.js call (discovery mode) → 10 `{artist, track}` → `Promise.all(itunes.searchByArtistTrack)` → `SuggestionList` (row layout, not cards) with thumbs shown only for the currently-loaded track. The global round `FloatingVibeButton` (bottom-right, visible on every tab) reopens the mood cloud, independent of daily cap. `NoNewSongsButton` (also always visible) skips the mood cloud entirely and fires a Groq call in familiar mode, favoring the user's real listening history over the static onboarding artist list. Accepts `autoOpenMoodPicker`/`onAutoOpenHandled` props so `App.jsx` can chain straight from onboarding into the mood picker.
+- **VibePulse.jsx** — daily-cap check → `MoodCloud` (scattered layout; tapping a mood highlights it but only fires the query once the "Set" button inside the modal is clicked) → groq.js call (discovery mode, requests 16 candidates) → `Promise.all(itunes.searchByArtistTrack)` → first 10 resolved matches → `SuggestionList` (row layout, not cards) with thumbs shown only for the currently-loaded track. The global round `FloatingVibeButton` (bottom-right, visible on every tab) reopens the mood cloud, independent of daily cap. `NoNewSongsButton` (also always visible) skips the mood cloud entirely and fires a Groq call in familiar mode, favoring the user's real listening history over the static onboarding artist list. `tasteAnchors` is received as a prop from `App.jsx` (not read independently) so editing Preferences from the sidebar — without switching tabs — re-triggers the active mood query automatically. Dismissing the mood picker without ever picking a mood calls `onGoHome` instead of leaving this tab in its empty state. Accepts `autoOpenMoodPicker`/`onAutoOpenHandled`/`tasteAnchors`/`onGoHome` props so `App.jsx` can drive it.
 
 ## State management
 
 - No Redux/Zustand. React Context only for the player (the one cross-cutting piece of state).
-- `useLocalStorage(key, defaultValue)` hook backs `tasteAnchors`, `vibePulseFeedback`, `dailyVibePrompt`, `onboardingSeen`, `profileName`.
-- `AppShell` also holds transient (non-persisted) component state for the onboarding chain: `isOnboardingFlow` (is the currently-open taste modal the forced first-load one, vs. banner/manual) and `justCompletedOnboarding` (one-shot signal telling `VibePulse` to auto-open its mood picker).
+- `useLocalStorage(key, defaultValue)` hook backs `tasteAnchors`, `vibePulseFeedback`, `dailyVibePrompt`, `onboardingSeen`, `profileName` — all owned at the `AppShell` level (not re-read independently by child pages) so every consumer sees the same live value.
+- `AppShell` also holds transient (non-persisted) component state for the onboarding chain: `isOnboardingFlow` (is the currently-open taste modal the forced first-load one, vs. banner/manual/Preferences) and `pendingMoodPicker` (one-shot signal telling `VibePulse` to auto-open its mood picker, also reused by the global floating vibe button).
 
 ## Data flow
 
 ```
-App.jsx --(mount, if !onboardingSeen && !tasteAnchors)--> forces TasteAnchorsModal open
+App.jsx --(mount, if !onboardingSeen && !tasteAnchors, after a 1.5s delay)--> forces TasteAnchorsModal open
 
 Home.jsx --(mount)--> itunes.js.searchTracks(seedQuery) x3 --> setState(tracks)
 Home card click --> PlayerContext.play(track)
 
-TasteAnchorsModal / InlinePreferencesEditor --(save)--> storage.js.set('tasteAnchors', {...})
-   (read later by) --> VibePulse.jsx on mood query
+TasteAnchorsModal --(save, from onboarding/banner/sidebar Preferences)--> App.jsx setTasteAnchors(...)
+   --> storage.js.set('tasteAnchors', {...}) + passed down as a live prop to VibePulse.jsx
+   (if a vibe is already active) --> VibePulse re-runs the current mood query against the new anchors
    (first-load only) --> App.jsx navigates to Vibe Pulse + tells it to auto-open the mood picker
 
 VibePulse: mood chip tap --> MoodCloud highlights it (no API call yet)
-VibePulse: "Set" button tap --> groq.js.getMoodRecommendations(tasteAnchors, mood)
-   --> [{artist, track}] x10
-   --> Promise.all(itunes.js.searchByArtistTrack(artist, track, {country})) --> [{artist,track,artworkUrl,previewUrl}]
+VibePulse: "Set" button tap, or tasteAnchors prop changing while a mood is active -->
+   groq.js.getMoodRecommendations(tasteAnchors, mood) --> [{artist, track}] x16
+   --> Promise.all(itunes.js.searchByArtistTrack(artist, track, {country})) --> filter + take first 10
    --> SuggestionList renders rows
+VibePulse: mood picker dismissed with no mood ever picked --> onGoHome() --> App.jsx setActiveTab('home')
 
 SuggestionList row click --> PlayerContext.play(track)  (same shared player as Home)
 SuggestionList thumbs click --> storage.js.set('vibePulseFeedback', {...})  (isolated, never touches tasteAnchors)
@@ -111,17 +113,19 @@ Body: {
   model: "llama-3.3-70b-versatile",
   messages: [
     { role: "system", content: "<system prompt, see VibePulse spec>" },
-    { role: "user", content: JSON.stringify({ tasteAnchors, mood }) }
+    { role: "user", content: JSON.stringify({ tasteAnchors, mood, recentlyPlayed }) }
   ],
   response_format: { type: "json_object" }
 }
 ```
 
-Exactly 1 LLM call per mood tap (daily prompt, manual "change my vibe", or "no new songs" — same
-code path), returning 10 track recommendations in one response (bumped from 6 so more candidates
-survive iTunes filtering). Response parsed as `JSON.parse(choices[0].message.content)` →
-`{ tracks: [{artist, track}, ...] }`, wrapped in try/catch with a fallback (empty array + inline
-error state) on parse failure.
+One LLM call per mood tap (daily prompt, floating vibe button, "no new songs", or a live preference
+edit while a mood is active — all funnel through the same `runMoodQuery`), returning 16 track
+recommendations in one response (over-requested so 10 reliably survive iTunes filtering — the
+shown list is sliced to the first 10 resolved matches). Response parsed as
+`JSON.parse(choices[0].message.content)` → `{ tracks: [{artist, track}, ...] }`, wrapped in
+try/catch with a fallback (empty array + inline error state) on parse failure. `recentlyPlayed`
+comes from `lib/listeningHistory.js` (most-recently-played tracks, capped at 20).
 
 Two system prompts, selected by a `mode` param (`'discovery'` default, or `'familiar'`), both
 stating the taste anchors are "hard constraints, not vague hints" (strengthened after a live-deploy
@@ -133,9 +137,10 @@ bug report of the LLM ignoring them):
   the inverse framing, for comfort/repeat listening on demand. No mood word is required for this
   path; it bypasses the mood cloud entirely and fires immediately.
 
-Note: the mood picker itself is two steps now — tapping a mood chip only highlights it; the actual
-Groq call fires when the user taps the floating "Set" button (bottom-right, above the player bar),
-not on the chip tap itself.
+Note: the mood picker itself is two steps — tapping a mood chip only highlights it; the actual Groq
+call fires when the user taps the "Set" button rendered inside the mood popup card itself (below
+the mood chips), not on the chip tap itself. The popup's heading reads "What's your vibe now?" —
+mood-setting isn't framed as a once-a-day action.
 
 ### Multi-key rotation
 

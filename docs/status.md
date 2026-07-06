@@ -566,6 +566,58 @@ artist name in the `artists` array (not the word "Other"). `npm run build` succe
 
 **Result:** ✅ Working as expected. No regressions.
 
+### Follow-up — Go-home on empty dismiss, live preference sync, fuller suggestion lists, copy (2026-07-06)
+
+**What was asked:** (1) dismissing the mood popup without picking a mood should send the user to
+Home, not leave them staring at Vibe Pulse's empty "no vibe set" state; (2) editing preferences (or
+picking a new mood) while a vibe is already active should refresh the suggestion list automatically,
+not require a manual re-trigger; (3) suggestion lists were sometimes visibly shorter than the
+promised 10 ("suggest some 10 songs dont stop with 5 alone"); (4) the mood popup's copy said "vibe
+today" — should say "vibe now".
+
+**Go-home on empty dismiss:** `App.jsx` now passes an `onGoHome` callback (`() =>
+setActiveTab('home')`) into `VibePulse`. Both `handleDailyDismiss` and `handleManualDismiss` call it
+whenever `selectedMood` is still null at dismiss time — i.e. the user never actually picked
+anything this session — covering the daily prompt, the floating-button-triggered picker, and the
+onboarding-chained picker (all three funnel through these same two handlers). If a mood *is*
+already active and the user reopens/dismisses the picker again, dismissing just closes it and
+leaves the existing suggestions in place — only the genuinely-empty case redirects.
+
+**Live preference sync — real bug, not cosmetic:** `VibePulse` previously read `tasteAnchors` via
+its *own* `useLocalStorage` call, completely independent from the copy `App.jsx` uses to drive the
+`TasteAnchorsModal`. Since Preferences can be edited without changing tabs (Sidebar's "Preferences"
+pill opens the popup while `VibePulse` stays mounted), the two copies could silently diverge —
+saving new preferences never reached the already-mounted `VibePulse`, so "the vibe list should
+change automatically" was structurally impossible before this fix, not just unimplemented.  Fixed
+by lifting `tasteAnchors` fully into `App.jsx` (already the single source of truth for the modal)
+and passing it down as a prop instead of re-reading it locally. A new effect in `VibePulse.jsx`
+(skipped on first mount via a ref) re-runs the current mood/mode against the latest `tasteAnchors`
+whenever that prop changes, so the moment preferences are saved, the list re-fetches itself.
+Picking a new mood already re-fetched directly via the existing click handlers — no change needed
+there.
+
+**Fuller suggestion lists:** Both Groq system prompts (`groq.js`) now request 16 tracks instead of
+10 — a buffer against the fraction that never resolve to a playable iTunes preview — and
+`VibePulse.jsx` takes the first 10 successful matches (`.slice(0, 10)`) after resolving. Previously
+Groq was asked for exactly 10 and whatever didn't resolve just silently shrank the shown list (e.g.
+down to 5); the buffer means the shown list reliably lands at 10 unless iTunes itself is having a
+very bad day.
+
+**Copy fix:** `MoodCloud.jsx`'s heading changed from "What's your vibe today?" to "What's your vibe
+now?", matching that mood-setting isn't a once-a-day thing in this app.
+
+**How it was tested:** Ran a full Playwright pass (mocked Groq returning 16 tracks/call, mocked
+iTunes always resolving) against a fresh session: confirmed the mood popup reads "What's your vibe
+now?"; dismissed it without picking and confirmed the app left the Vibe Pulse tab entirely (its
+heading disappeared, the Home search bar appeared) instead of showing the empty state; reopened the
+picker via the floating button, picked a mood, and confirmed exactly 10 suggestion rows rendered;
+opened Preferences from the sidebar while that list was showing, changed the language/artist
+selection, saved, and confirmed a second Groq call fired automatically and the suggestion list
+re-rendered with the new call's tracks — with no additional click beyond saving preferences.
+`npm run build` succeeds.
+
+**Result:** ✅ Working as expected. No regressions.
+
 ### Phase 9 — Deploy to Vercel (2026-07-06, in progress)
 
 **Pre-deploy checks done:** Ran `npm run build` — succeeds cleanly (`dist/index.html`,

@@ -31,7 +31,7 @@ export default function MoodCloud({ onSelectMood, onDismiss, dismissible = true 
             ✕
           </button>
         )}
-        <p className="text-white text-lg font-bold mb-6 text-center">What's your vibe today?</p>
+        <p className="text-white text-lg font-bold mb-6 text-center">What's your vibe now?</p>
         <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-4">
           {MOODS.map((mood, i) => {
             const rotate = (pseudoRandom(i + 1) - 0.5) * 16

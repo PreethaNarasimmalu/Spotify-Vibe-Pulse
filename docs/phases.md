@@ -245,6 +245,18 @@ alongside the curated pool that, when picked, reveals a text box to type a custo
 typed name (not the literal word "Other") is what gets saved and counted toward the 3-artist
 minimum, and re-opening the modal later correctly restores a previously typed custom artist.
 
+## Follow-up — Go-home on empty dismiss, live preference sync, fuller lists, copy (2026-07-06)
+**Files:** `App.jsx`, `VibePulse.jsx`, `groq.js`, `MoodCloud.jsx`.
+
+Dismissing the mood popup without ever picking a mood now sends the user to Home instead of
+leaving them on Vibe Pulse's empty state. `tasteAnchors` is now passed into `VibePulse` as a prop
+from `App.jsx` (previously it read its own separate `useLocalStorage` copy, which meant saving
+Preferences from the sidebar — without changing tabs — never reached the already-mounted page); an
+effect now re-runs the active mood query automatically whenever that prop changes. Groq is asked
+for 16 tracks per call instead of 10 (buffer against iTunes lookup misses), and the shown list is
+sliced to the first 10 resolved matches — previously a lookup-heavy round could visibly shrink to
+5 or 6 shown tracks. Mood popup copy changed from "vibe today" to "vibe now".
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live

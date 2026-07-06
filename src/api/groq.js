@@ -1,13 +1,19 @@
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = 'llama-3.3-70b-versatile'
 
+// Requesting more than the 10 we actually show gives the caller a buffer to
+// absorb tracks that never resolve to a playable iTunes preview, so the
+// displayed list stays at a full 10 instead of trailing off to whatever
+// happened to survive the lookup.
+const REQUEST_COUNT = 16
+
 const DISCOVERY_SYSTEM_PROMPT =
   'You are a music recommendation engine for a Spotify-like app. The listener\'s taste anchors ' +
   '(1-2 preferred languages, favorite artists) are hard constraints, not vague hints: every track ' +
   'you return must either be BY one of the listed favorite artists, or by a different artist who ' +
   'sings in one of the listener\'s preferred languages and shares a similar genre/style. Given the ' +
-  'listener\'s current mood word, return exactly 10 track recommendations that genuinely fit that ' +
-  'mood, as strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. ' +
+  `listener's current mood word, return exactly ${REQUEST_COUNT} track recommendations that genuinely ` +
+  'fit that mood, as strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. No markdown, no preamble. ' +
   'Favor a mix of well-known and lesser-known tracks, not just top-40 picks — but never ignore the ' +
   'listener\'s languages or artists to do so. If a recentlyPlayed list is provided, avoid ' +
   'recommending tracks the listener has already been playing — this is meant to be discovery.'
@@ -17,8 +23,8 @@ const DISCOVERY_SYSTEM_PROMPT =
 const FAMILIAR_SYSTEM_PROMPT =
   'You are a music recommendation engine for a Spotify-like app. The listener\'s taste anchors ' +
   '(1-2 preferred languages, favorite artists) are hard constraints. The listener wants familiar ' +
-  'comfort listening for their current mood, not discovery: return exactly 10 well-known, popular ' +
-  'track recommendations that fit the mood, as strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. ' +
+  `comfort listening for their current mood, not discovery: return exactly ${REQUEST_COUNT} well-known, ` +
+  'popular track recommendations that fit the mood, as strict JSON: {"tracks":[{"artist":"...","track":"..."}]}. ' +
   'No markdown, no preamble. If a recentlyPlayed list is provided (their actual recent listening ' +
   'history), heavily favor tracks by those same artists, or by the listener\'s originally chosen ' +
   'favorite artists — this reflects their real current taste better than a static onboarding list ' +

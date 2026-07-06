@@ -106,7 +106,12 @@ function AppShell() {
 
   const pageProps =
     activeTab === 'vibepulse'
-      ? { autoOpenMoodPicker: pendingMoodPicker, onAutoOpenHandled: () => setPendingMoodPicker(false) }
+      ? {
+          autoOpenMoodPicker: pendingMoodPicker,
+          onAutoOpenHandled: () => setPendingMoodPicker(false),
+          tasteAnchors,
+          onGoHome: () => setActiveTab('home'),
+        }
       : {}
 
   return (

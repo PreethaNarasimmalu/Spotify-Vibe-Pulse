@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { STORAGE_KEYS } from '../lib/storage'
 import { getMoodRecommendations } from '../api/groq'
@@ -9,12 +9,13 @@ import MoodCloud from '../components/vibePulse/MoodCloud'
 import SuggestionList from '../components/vibePulse/SuggestionList'
 import NoNewSongsButton from '../components/vibePulse/NoNewSongsButton'
 
+const SUGGESTION_TARGET = 10
+
 function todayString() {
   return new Date().toISOString().slice(0, 10)
 }
 
-export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandled }) {
-  const [tasteAnchors] = useLocalStorage(STORAGE_KEYS.TASTE_ANCHORS, null)
+export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandled, tasteAnchors, onGoHome }) {
   const [dailyPrompt, setDailyPrompt] = useLocalStorage(STORAGE_KEYS.DAILY_VIBE_PROMPT, {
     lastShownDate: null,
     lastResponse: null,
@@ -49,7 +50,7 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
       const resolved = await Promise.all(
         tracks.map((t) => searchByArtistTrack(t.artist, t.track, { country })),
       )
-      setSuggestions(resolved.filter(Boolean))
+      setSuggestions(resolved.filter(Boolean).slice(0, SUGGESTION_TARGET))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -57,13 +58,35 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
     }
   }
 
+  // Preferences (languages/artists) can be edited from the sidebar or the
+  // contextual banner without ever leaving this tab, so this tab's own state
+  // wouldn't otherwise know they changed. Once a vibe is already active,
+  // re-run the same mood/mode against the updated taste anchors automatically
+  // instead of leaving the list showing recommendations grounded in the old
+  // preferences. Skipped on mount so it doesn't double-fire the first query.
+  const skipNextTasteRefresh = useRef(true)
+  useEffect(() => {
+    if (skipNextTasteRefresh.current) {
+      skipNextTasteRefresh.current = false
+      return
+    }
+    if (selectedMood) runMoodQuery(selectedMood, mode)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasteAnchors])
+
   const handleDailyMoodPick = (mood) => {
     setDailyPrompt({ lastShownDate: today, lastResponse: 'picked' })
     runMoodQuery(mood)
   }
 
+  // Dismissing without ever having picked a mood this session would otherwise
+  // leave the user staring at this tab's empty "no vibe set" state — send them
+  // back to Home instead. Once a mood has actually been set (suggestions are
+  // showing), dismissing a re-opened picker just closes it and keeps those
+  // suggestions visible.
   const handleDailyDismiss = () => {
     setDailyPrompt({ lastShownDate: today, lastResponse: 'dismissed' })
+    if (!selectedMood) onGoHome?.()
   }
 
   // If today's daily prompt hasn't been resolved yet, consuming the manual
@@ -79,6 +102,7 @@ export default function VibePulse({ autoOpenMoodPicker = false, onAutoOpenHandle
   const handleManualDismiss = () => {
     setManualPromptOpen(false)
     if (showDailyPrompt) setDailyPrompt({ lastShownDate: today, lastResponse: 'dismissed' })
+    if (!selectedMood) onGoHome?.()
   }
 
   // Reuses whatever vibe was last set (or a neutral default if none picked
