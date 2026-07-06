@@ -1,30 +1,45 @@
 import { useState } from 'react'
 import ChipGroup from './ChipGroup'
-import { LANGUAGES, OTHER_LANGUAGE, MAX_LANGUAGES, artistPoolForLanguages } from '../../lib/tasteData'
+import { LANGUAGES, OTHER_LANGUAGE, MAX_LANGUAGES, OTHER_ARTIST, artistPoolForLanguages } from '../../lib/tasteData'
 
 export default function TasteAnchorsModal({ onClose, onSave, initial }) {
   const [stepIndex, setStepIndex] = useState(0)
   const initialLanguages = initial?.languages ?? []
   const initialKnown = initialLanguages.filter((l) => LANGUAGES.includes(l))
-  const initialCustom = initialLanguages.find((l) => !LANGUAGES.includes(l)) ?? ''
+  const initialCustomLanguage = initialLanguages.find((l) => !LANGUAGES.includes(l)) ?? ''
 
   const [selectedChips, setSelectedChips] = useState(() =>
-    initialCustom ? [...initialKnown, OTHER_LANGUAGE] : initialKnown,
+    initialCustomLanguage ? [...initialKnown, OTHER_LANGUAGE] : initialKnown,
   )
-  const [customLanguage, setCustomLanguage] = useState(initialCustom)
-  const [artists, setArtists] = useState(initial?.artists ?? [])
+  const [customLanguage, setCustomLanguage] = useState(initialCustomLanguage)
 
   const isLanguageStep = stepIndex === 0
   const isLastStep = stepIndex === 1
-  const hasOther = selectedChips.includes(OTHER_LANGUAGE)
+  const hasOtherLanguage = selectedChips.includes(OTHER_LANGUAGE)
   const effectiveLanguages = selectedChips
     .map((c) => (c === OTHER_LANGUAGE ? customLanguage.trim() : c))
     .filter(Boolean)
-  const artistOptions = artistPoolForLanguages(effectiveLanguages)
-  const isComplete = isLanguageStep ? effectiveLanguages.length > 0 : artists.length === 3
+  const knownArtistPool = artistPoolForLanguages(effectiveLanguages)
+  const artistOptions = [...knownArtistPool, OTHER_ARTIST]
+
+  const initialArtists = initial?.artists ?? []
+  const initialKnownArtists = initialArtists.filter((a) => knownArtistPool.includes(a))
+  const initialCustomArtist = initialArtists.find((a) => !knownArtistPool.includes(a)) ?? ''
+
+  const [artists, setArtists] = useState(() =>
+    initialCustomArtist ? [...initialKnownArtists, OTHER_ARTIST] : initialKnownArtists,
+  )
+  const [customArtist, setCustomArtist] = useState(initialCustomArtist)
+
+  const hasOtherArtist = artists.includes(OTHER_ARTIST)
+  const effectiveArtists = artists
+    .map((a) => (a === OTHER_ARTIST ? customArtist.trim() : a))
+    .filter(Boolean)
+  const isComplete = isLanguageStep ? effectiveLanguages.length > 0 : effectiveArtists.length === 3
 
   const toggleLanguageChip = (option) => {
     setArtists([])
+    setCustomArtist('')
     setSelectedChips((prev) => {
       if (prev.includes(option)) {
         if (option === OTHER_LANGUAGE) setCustomLanguage('')
@@ -36,15 +51,19 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
   }
 
   const toggleArtist = (option) => {
-    setArtists((prev) =>
-      prev.includes(option) ? prev.filter((o) => o !== option) : prev.length < 3 ? [...prev, option] : prev,
-    )
+    setArtists((prev) => {
+      if (prev.includes(option)) {
+        if (option === OTHER_ARTIST) setCustomArtist('')
+        return prev.filter((o) => o !== option)
+      }
+      return prev.length < 3 ? [...prev, option] : prev
+    })
   }
 
   const handleNext = () => {
     if (!isComplete) return
     if (isLastStep) {
-      onSave({ languages: effectiveLanguages, artists, updatedAt: new Date().toISOString() })
+      onSave({ languages: effectiveLanguages, artists: effectiveArtists, updatedAt: new Date().toISOString() })
     } else {
       setStepIndex(1)
     }
@@ -75,7 +94,7 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
               max={MAX_LANGUAGES}
               onToggle={toggleLanguageChip}
             />
-            {hasOther && (
+            {hasOtherLanguage && (
               <input
                 type="text"
                 value={customLanguage}
@@ -91,6 +110,17 @@ export default function TasteAnchorsModal({ onClose, onSave, initial }) {
           <>
             <h2 className="text-white text-sm text-spotify-gray mb-4">Pick 3 artists you like</h2>
             <ChipGroup options={artistOptions} selected={artists} max={3} onToggle={toggleArtist} />
+            {hasOtherArtist && (
+              <input
+                type="text"
+                value={customArtist}
+                onChange={(e) => setCustomArtist(e.target.value)}
+                placeholder="Type an artist name"
+                data-testid="custom-artist-input"
+                autoFocus
+                className="mt-4 w-full bg-black/40 border border-[#535353] rounded-lg px-4 py-2 text-white text-sm placeholder-spotify-gray focus:outline-none focus:border-spotify-green"
+              />
+            )}
           </>
         )}
 

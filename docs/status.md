@@ -542,6 +542,30 @@ preferences also chains to the vibe popup, and picking a mood + Set displays the
 
 **Result:** ✅ Working as expected, matching the exact requested sequence. No regressions.
 
+### Follow-up — "Other" option for artists, not just language (2026-07-06)
+
+**What was asked:** the artist-picking step only offered a curated chip list per language, with no
+escape hatch — unlike the language step, which already had an "Other" chip + text box for anyone
+whose language wasn't in the curated list. The ask was to give artists the same treatment.
+
+**What was changed:** `lib/tasteData.js` exports a new `OTHER_ARTIST` constant. In
+`TasteAnchorsModal.jsx`, the artist step's `ChipGroup` now appends an "Other" chip to the curated
+pool. Selecting it (as one of the 3 picks) reveals a text input ("Type an artist name"), mirroring
+the language step exactly — same styling, same auto-focus, same clear-on-deselect behavior.
+`effectiveArtists` resolves the placeholder to the typed value the same way `effectiveLanguages`
+already did for custom languages, so `isComplete` (and the eventual saved `artists` array) is based
+on the *typed* name, not the literal word "Other". Re-opening the modal later with a previously
+saved custom artist correctly restores it as "Other" selected + the text box pre-filled, same as
+custom languages already did.
+
+**How it was tested:** Ran the full flow via Playwright (mocked Groq/iTunes): selected a language,
+advanced to the artist step, confirmed the "Other" chip and text box appear, confirmed Next stays
+disabled while the box is empty (even with only 1 of 3 slots used) and enables once a name is typed
+and 3 total are picked, then verified the saved `localStorage.tasteAnchors` contains the *typed*
+artist name in the `artists` array (not the word "Other"). `npm run build` succeeds.
+
+**Result:** ✅ Working as expected. No regressions.
+
 ### Phase 9 — Deploy to Vercel (2026-07-06, in progress)
 
 **Pre-deploy checks done:** Ran `npm run build` — succeeds cleanly (`dist/index.html`,

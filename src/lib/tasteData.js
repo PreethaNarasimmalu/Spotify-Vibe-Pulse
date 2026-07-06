@@ -1,6 +1,7 @@
 export const LANGUAGES = ['English', 'Tamil', 'Hindi', 'Telugu', 'Malayalam']
 export const OTHER_LANGUAGE = 'Other'
 export const MAX_LANGUAGES = 2
+export const OTHER_ARTIST = 'Other'
 
 // Curated per-language pools reflecting current (2026) trending/Gen-Z-relevant artists,
 // not just generic all-time favorites — see docs/status.md for the research behind these.

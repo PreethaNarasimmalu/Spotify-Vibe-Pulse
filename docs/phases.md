@@ -237,6 +237,14 @@ title to the modal. Verified end-to-end with Playwright: close-without-finishing
 the vibe popup and a playlist displays if a mood is picked; the sequence never re-fires after the
 first time.
 
+## Follow-up — "Other" option for artists (2026-07-06)
+**Files:** `lib/tasteData.js`, `TasteAnchorsModal.jsx`.
+
+Artists step now has the same "Other" escape hatch the language step already had: an "Other" chip
+alongside the curated pool that, when picked, reveals a text box to type a custom artist name. The
+typed name (not the literal word "Other") is what gets saved and counted toward the 3-artist
+minimum, and re-opening the modal later correctly restores a previously typed custom artist.
+
 ## Phase 9 — Deploy to Vercel (in progress)
 Push to GitHub (done — this branch), import in Vercel, add `VITE_GROQ_API_KEYS` (or
 `VITE_GROQ_API_KEY`) as a Vercel project environment variable, deploy. This is also where live
